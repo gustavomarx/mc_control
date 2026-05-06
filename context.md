@@ -12,13 +12,14 @@ Banco PJ: Sicoob | Sistema de agendamento/faturamento: AVEC
 - Tailwind CSS v4
 - Vercel (deploy automático via GitHub)
 - pdf-parse v2.4.5 (parser Sicoob) | xlsx (exportação Excel)
+- GitHub: gustavomarx/mc_finance (branch master)
 
 ## Firebase
 - Projeto: mc-finance-2b96f
 - Auth: habilitado (email/senha), usuário gustavomarx15@gmail.com
 - Firestore: southamerica-east1
 - Seed: 18 categorias, 15 contas a pagar, 7 profissionais, configurações
-- Coleções: `contas_pagar`, `transacoes`, `extratos`, `categorias`, `configuracoes`, `cnpj_cache`, `profissionais`, `faturamento_avec`, `dre_mensal`
+- Coleções: `contas_pagar`, `transacoes`, `extratos`, `categorias`, `configuracoes`, `cnpj_cache`, `profissionais`, `faturamento_avec`, `dre_mensal`, `dre_config`
 
 ## Estrutura de rotas
 ```
