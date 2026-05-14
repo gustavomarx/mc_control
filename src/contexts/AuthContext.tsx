@@ -4,12 +4,17 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getUsuario } from '@/lib/firestore'
-import type { Usuario } from '@/types'
+import type { Usuario, PerfilUsuario } from '@/types'
+
+const ROTAS_ATENDENTE = ['/mensagens', '/tarefas', '/agenda', '/crm']
 
 interface AuthContextValue {
   user: User | null
   usuario: Usuario | null
   loading: boolean
+  perfil: PerfilUsuario | null
+  nomeUsuario: string | null
+  podeAcessar: (rota: string) => boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -28,15 +33,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await firebaseUser.getIdToken()
         document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Strict`
         const data = await getUsuario(firebaseUser.uid)
+        if (data && data.ativo === false) {
+          // Usuário desativado — faz logout
+          document.cookie = 'firebase-token=; path=/; max-age=0'
+          document.cookie = 'user-perfil=; path=/; max-age=0'
+          await signOut(auth)
+          setUsuario(null)
+          setLoading(false)
+          return
+        }
         setUsuario(data)
+        if (data?.perfil) {
+          document.cookie = `user-perfil=${data.perfil}; path=/; max-age=3600; SameSite=Strict`
+        }
       } else {
         document.cookie = 'firebase-token=; path=/; max-age=0'
+        document.cookie = 'user-perfil=; path=/; max-age=0'
         setUsuario(null)
       }
       setLoading(false)
     })
     return unsub
   }, [])
+
+  function podeAcessar(rota: string): boolean {
+    if (!usuario) return false
+    if (usuario.perfil === 'admin') return true
+    return ROTAS_ATENDENTE.some(r => rota === r || rota.startsWith(r + '/'))
+  }
 
   async function login(email: string, password: string) {
     await signInWithEmailAndPassword(auth, email, password)
@@ -47,7 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, usuario, loading, login, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      usuario,
+      loading,
+      perfil: usuario?.perfil ?? null,
+      nomeUsuario: usuario?.nome ?? null,
+      podeAcessar,
+      login,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   )

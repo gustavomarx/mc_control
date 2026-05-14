@@ -2,12 +2,16 @@ import { Timestamp } from 'firebase/firestore'
 
 // ── Usuário ───────────────────────────────────────────────────────────────────
 
+export type PerfilUsuario = 'admin' | 'atendente'
+
 export interface Usuario {
   uid: string
   nome: string
   email: string
-  papel: 'admin' | 'usuario'
+  perfil: PerfilUsuario
+  ativo: boolean
   criadoEm: Timestamp
+  criadoPor: string
 }
 
 // ── Transação ─────────────────────────────────────────────────────────────────
@@ -196,6 +200,203 @@ export interface Configuracoes {
   percentualSimplesNacional: number
   totalCustosVariaveis: number
   custoFixoMensal: number
+}
+
+// ── Tarefas ───────────────────────────────────────────────────────────────────
+
+export type ResponsavelTarefa = 'gabriela' | 'gustavo' | 'equipe'
+export type CategoriaTarefa = 'financeiro' | 'marketing' | 'operacional' | 'atendimento' | 'estoque' | 'outro'
+export type PrioridadeTarefa = 'urgente' | 'alta' | 'normal' | 'baixa'
+export type RecorrenciaTarefa = 'unica' | 'diaria' | 'semanal' | 'quinzenal' | 'mensal'
+
+export interface SubtarefaTarefa {
+  id: string
+  titulo: string
+  concluida: boolean
+}
+
+export interface ConclusaoTarefa {
+  concluidaEm: Timestamp
+}
+
+export interface Tarefa {
+  id: string
+  titulo: string
+  descricao: string
+  responsavel: ResponsavelTarefa
+  categoria: CategoriaTarefa
+  prioridade: PrioridadeTarefa
+  dataEntrega: Timestamp
+  recorrencia: RecorrenciaTarefa
+  recorrenciaDia?: number
+  estimativaTempo?: string
+  link?: string
+  subtarefas: SubtarefaTarefa[]
+  concluida: boolean
+  concluidaEm?: Timestamp
+  historico_conclusoes: ConclusaoTarefa[]
+  criadaEm: Timestamp
+  atualizadaEm: Timestamp
+}
+
+// ── Agenda AVEC ───────────────────────────────────────────────────────────────
+
+export type StatusAgendamento =
+  | 'Agendado'
+  | 'Confirmado'
+  | 'Aguardando'
+  | 'Em Atendimento'
+  | 'Pago'
+  | 'Finalizado'
+  | 'Cancelado'
+  | 'Faltou'
+
+export interface AgendamentoAvec {
+  dataReserva: string
+  hora: string
+  cliente: string
+  celular: string
+  dataCadastroCliente: string
+  profissional: string
+  servico: string
+  status: StatusAgendamento
+  observacao: string
+  clienteNova: boolean
+}
+
+export interface AgendaDia {
+  ativos: number
+  confirmados: number
+  aguardando: number
+  agendados: number
+  cancelados: number
+  faltas: number
+}
+
+export interface AgendaAvec {
+  id: string
+  semanaKey: string
+  uploadEm: Timestamp
+  totalAtivos: number
+  totalCancelados: number
+  totalFaltas: number
+  clientesNovas: number
+  porDia: Record<string, AgendaDia>
+  porProfissional: Record<string, Record<string, number>>
+  porServico: { cilios: number; unhas: number; agregados: number; outros: number }
+  agendamentos: AgendamentoAvec[]
+}
+
+// ── CRM ───────────────────────────────────────────────────────────────────────
+
+export type StatusAniversariante = 'nao_contatada' | 'mensagem_enviada' | 'agendou'
+export type StatusRecuperacao = 'nao_contatada' | 'contatada' | 'agendou' | 'nao_quer_mais'
+
+export interface AniversarianteStatus {
+  id: string
+  nome: string
+  dataNascimento: string
+  celular: string
+  email?: string
+  status: StatusAniversariante
+  atualizadoEm: Timestamp
+}
+
+export interface RecuperacaoStatus {
+  id: string
+  nome: string
+  ultimaVisita: string
+  diasSemRetorno: number
+  celular: string
+  email?: string
+  status: StatusRecuperacao
+  atualizadoEm: Timestamp
+}
+
+// ── Comissões ─────────────────────────────────────────────────────────────────
+
+export interface ComissaoProfissional {
+  nome: string
+  tipoContratacao: string
+  faturado: number
+  rateioServicos: number
+  rateioOutros: number
+  descontos: number
+  aPagar: number
+  valorCasa: number
+  percentualTotal: number
+}
+
+export interface Comissoes {
+  id: string
+  periodoKey: string
+  periodoInicio: string
+  periodoFim: string
+  uploadEm: Timestamp
+  totalFaturado: number
+  totalAPagar: number
+  valorCasa: number
+  profissionais: ComissaoProfissional[]
+}
+
+// ── Caixa por Forma de Pagamento ──────────────────────────────────────────────
+
+export interface FormaPagamento {
+  nome: string
+  valor: number
+  percentual: number
+}
+
+export interface CaixaFormas {
+  id: string
+  periodoKey: string
+  periodoInicio: string
+  periodoFim: string
+  uploadEm: Timestamp
+  total: number
+  formas: FormaPagamento[]
+  dinheiroDepositado: boolean
+  dinheiroDepositadoEm?: Timestamp
+}
+
+// ── Mensagens ─────────────────────────────────────────────────────────────────
+
+export type TipoTemplate = 'lote' | 'individual' | 'ambos'
+export type CategoriaTemplate = 'confirmacao' | 'lembrete' | 'pos_atendimento' | 'aniversario' | 'cobranca' | 'livre'
+
+export interface MensagemTemplate {
+  id: string
+  titulo: string
+  tipo: TipoTemplate
+  categoria: CategoriaTemplate
+  conteudo: string
+  ativo: boolean
+  statusPadrao?: string[]
+  criadoEm: Timestamp
+  criadoPor: string
+  atualizadoEm: Timestamp
+}
+
+export interface DestinatarioMensagem {
+  nome: string
+  celular: string
+  mensagemFinal: string
+  status: 'enviado' | 'pulado'
+}
+
+export type TipoEnvio = 'lote' | 'individual'
+
+export interface MensagemEnviada {
+  id: string
+  templateId: string
+  templateTitulo: string
+  tipo: TipoEnvio
+  destinatarios: DestinatarioMensagem[]
+  totalEnviados: number
+  totalPulados: number
+  enviadoPor: string
+  enviadoEm: Timestamp
+  periodoAgenda?: string
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────

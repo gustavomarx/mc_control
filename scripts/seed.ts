@@ -5,6 +5,7 @@
 
 import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
+import { getAuth } from 'firebase-admin/auth'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
@@ -128,6 +129,130 @@ const profissionais = [
   { nome: 'Yasmin Penelope Machado Portilho', funcao: 'manicure', percentualComissao: 0.30, ativa: true },
 ]
 
+// ── Templates de Mensagens ────────────────────────────────────────────────────
+// IDs fixos = re-execução do seed é segura (upsert)
+
+const mensagensTemplates = [
+  {
+    id: 'confirmacao-dia-seguinte',
+    titulo: 'Confirmação 24h',
+    tipo: 'ambos',
+    categoria: 'confirmacao',
+    statusPadrao: ['Agendado'],
+    conteudo:
+`Oiee maravilhosa, tá pertinho de você vir ter o seu momento de autocuidado conosco ❤️
+Seu serviço foi agendado com sucesso para dia *{data} às {hora}* no {studio}.
+
+*{nome}*, queremos confirmar sua presença que é muuuuito importante para a profissional que conta com sua presença. *Posso confirmar?*`,
+    ativo: true,
+  },
+  {
+    id: 'lembrete-agendamento',
+    titulo: 'Lembrete 48h',
+    tipo: 'ambos',
+    categoria: 'lembrete',
+    statusPadrao: ['Agendado'],
+    conteudo:
+`Olá, *{nome}*, tudo bem? Espero que sim!
+
+Quero te lembrar que você tem um horário agendado conosco no dia *{data} às {hora}* para *{servicos}*
+
+Aguardamos ansiosas pelo seu momento especial de autocuidado! 💕
+
+📍 Nosso endereço: Rua Altamiro Di Bernadi, 51, loja 04, São José - SC
+⚠️ Caso precise desmarcar, por gentileza, avise com 24 horas de antecedência.`,
+    ativo: true,
+  },
+  {
+    id: 'pos-atendimento',
+    titulo: 'Pós-Atendimento',
+    tipo: 'lote',
+    categoria: 'pos_atendimento',
+    statusPadrao: ['Pago'],
+    conteudo:
+`Oi, *{nome}*! 💖
+
+*Me conta, como você acordou hoje depois do seu atendimento?*
+
+Foi um prazer cuidar de você! Qualquer dúvida ou *se quiser me contar como está se sentindo com o resultado*, me chama aqui.
+
+E quando quiser repetir esse momento ou se ainda não deixou seu retorno garantido, me avise aqui e te ajudo. 🫶`,
+    ativo: true,
+  },
+  {
+    id: 'feedback',
+    titulo: 'Feedback',
+    tipo: 'lote',
+    categoria: 'pos_atendimento',
+    statusPadrao: ['Pago'],
+    conteudo:
+`Oi, *{nome}*! 🤍
+Que bom ter você aqui no Studio na semana passada!
+Esperamos que você tenha saído se sentindo ainda mais linda e especial.
+
+Como foi sua experiência com {profissional}? Adoraríamos ouvir o que você achou do atendimento e do resultado! 🌸
+
+Seu feedback *é muito importante pra gente*, é ele que nos ajuda a continuar melhorando e a garantir que cada visita seja ainda mais especial pra você.
+Pode ser curtinho mesmo, uma frase já ajuda muito!`,
+    ativo: true,
+  },
+  {
+    id: 'aniversariante',
+    titulo: 'Aniversariante',
+    tipo: 'ambos',
+    categoria: 'aniversario',
+    statusPadrao: ['Pago'],
+    conteudo:
+`Olá *{nome}*, tudo bem?
+
+*Esse é o mês do seu aniversário!*
+
+Que alegria celebrar essa fase tão especial da sua vida 🤍
+
+Desejamos que esse novo ciclo seja repleto de amor, saúde, prosperidade e muitos momentos de autocuidado.
+
+E para deixar esse mês ainda mais especial, *queremos te presentear* com um *voucher de 50% OFF* no nosso Detox Facial 💆‍♀️✨
+
+Um cuidado perfeito para deixar sua pele ainda mais linda, iluminada e radiante
+
+📅 Válido até *{validade}*
+
+Me chama por aqui para agendarmos seu momento, será uma honra cuidar de você 💕`,
+    ativo: true,
+  },
+  {
+    id: 'recuperacao',
+    titulo: 'Recuperação',
+    tipo: 'lote',
+    categoria: 'livre',
+    statusPadrao: ['Cancelado', 'Faltou'],
+    conteudo:
+`Oi, *{nome}*!
+Sentimos sua falta aqui no Studio essa semana! 🥺
+
+A gente sabe que imprevistos acontecem e tudo bem! Que tal a gente remarcar? Ainda temos horários disponíveis e adoraríamos te receber.
+
+É só me falar qual dia e horário fica melhor pra você. 💕`,
+    ativo: true,
+  },
+  {
+    id: 'cobranca',
+    titulo: 'Cobrança / Pagamento',
+    tipo: 'individual',
+    categoria: 'cobranca',
+    conteudo: 'Oi {nome}! Tudo bem? Passando para avisar sobre um pagamento pendente referente ao seu atendimento no Studio Meus Cílios. Pode nos chamar para resolver! 😊',
+    ativo: true,
+  },
+  {
+    id: 'livre',
+    titulo: 'Mensagem Livre',
+    tipo: 'ambos',
+    categoria: 'livre',
+    conteudo: '{mensagem}',
+    ativo: true,
+  },
+]
+
 // ── Configurações ─────────────────────────────────────────────────────────────
 
 const configuracoes = {
@@ -179,6 +304,54 @@ async function seed() {
   // Configurações
   await db.collection('configuracoes').doc('parametros').set(configuracoes)
   console.log('✓ Configurações')
+
+  // Usuário admin (gustavomarx15@gmail.com)
+  try {
+    const userRecord = await getAuth().getUserByEmail('gustavomarx15@gmail.com')
+    const usuarioRef = db.collection('usuarios').doc(userRecord.uid)
+    const usuarioSnap = await usuarioRef.get()
+    if (!usuarioSnap.exists) {
+      await usuarioRef.set({
+        uid: userRecord.uid,
+        nome: 'Gustavo',
+        email: 'gustavomarx15@gmail.com',
+        perfil: 'admin',
+        ativo: true,
+        criadoEm: Timestamp.now(),
+        criadoPor: userRecord.uid,
+      })
+      console.log('✓ Usuário admin criado')
+    } else {
+      // Migra campo papel → perfil se necessário
+      const data = usuarioSnap.data()!
+      if (!data.perfil) {
+        await usuarioRef.update({ perfil: 'admin', ativo: true, criadoPor: userRecord.uid })
+        console.log('✓ Usuário admin migrado (papel → perfil)')
+      } else {
+        console.log('✓ Usuário admin já existe')
+      }
+    }
+  } catch (e) {
+    console.warn('⚠ Não foi possível criar/verificar usuário admin:', e)
+  }
+
+  // Templates de mensagens — upsert por ID fixo (re-run seguro)
+  const adminSnap = await db.collection('usuarios').limit(1).get()
+  const adminUid = adminSnap.empty ? 'seed' : adminSnap.docs[0].id
+  const batchTemplates = db.batch()
+  for (const tpl of mensagensTemplates) {
+    const { id, ...dados } = tpl
+    const ref = db.collection('mensagens_templates').doc(id)
+    const snap = await ref.get()
+    const now = Timestamp.now()
+    if (!snap.exists) {
+      batchTemplates.set(ref, { ...dados, criadoPor: adminUid, criadoEm: now, atualizadoEm: now })
+    } else {
+      batchTemplates.update(ref, { ...dados, atualizadoEm: now })
+    }
+  }
+  await batchTemplates.commit()
+  console.log(`✓ ${mensagensTemplates.length} templates de mensagens (upsert)`)
 
   console.log('\nSeed concluído.')
   process.exit(0)

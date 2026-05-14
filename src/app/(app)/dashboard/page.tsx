@@ -17,7 +17,6 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [pagando, setPagando] = useState<{ conta: ContaPagar; mes: number; ano: number } | null>(null)
 
-  // Saldo PJ inline edit
   const [editandoSaldo, setEditandoSaldo] = useState(false)
   const [saldoInput, setSaldoInput] = useState('')
   const saldoRef = useRef<HTMLInputElement>(null)
@@ -39,7 +38,6 @@ export default function DashboardPage() {
     if (e.key === 'Escape') setEditandoSaldo(false)
   }
 
-  // Janela: seg semana passada → dom semana atual
   const hoje = new Date()
   const dow = hoje.getDay()
   const diffSeg = dow === 0 ? -6 : 1 - dow
@@ -47,8 +45,6 @@ export default function DashboardPage() {
   const segundaPassada = new Date(segundaAtual); segundaPassada.setDate(segundaAtual.getDate() - 7)
   const domingoAtual = new Date(segundaAtual); domingoAtual.setDate(segundaAtual.getDate() + 6)
   const janelaLabel = `${segundaPassada.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} – ${domingoAtual.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
-
-  // Semana atual: seg → dom
   const semanaLabel = `${segundaAtual.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} – ${domingoAtual.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
 
   function isSemanaPast(vencimento: Date): boolean {
@@ -63,16 +59,12 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-8">
-      {/* Cabeçalho */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-0.5">{MESES_NOMES[mes - 1]} {ano}</p>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-
-        {/* Saldo PJ */}
         <div className="card">
           <p className="text-xs text-gray-500 mb-2">Saldo PJ</p>
           {editandoSaldo ? (
@@ -98,7 +90,6 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-400 mt-1">Clique para atualizar</p>
         </div>
 
-        {/* Priorizado */}
         <div className="card">
           <p className="text-xs text-gray-500 mb-2">A pagar (priorizados)</p>
           <p className="text-xl font-semibold text-amber-600">{formatBRL(totaisJanela.priorizado)}</p>
@@ -107,7 +98,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Gap */}
         <div className="card">
           <p className="text-xs text-gray-500 mb-2">Gap saldo − priorizados</p>
           <p className={`text-xl font-bold ${gapPositivo ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -118,7 +108,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Custo fixo */}
         <div className="card">
           <p className="text-xs text-gray-500 mb-2">Custo fixo / mês</p>
           <p className="text-xl font-semibold text-gray-900">{formatBRL(totaisMes.custoFixo)}</p>
@@ -130,7 +119,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Tabela de contas — janela 2 semanas */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <div>
@@ -175,7 +163,6 @@ export default function DashboardPage() {
                     key={`${conta.id}-${vencimento.toISOString().slice(0,10)}`}
                     className={`hover:bg-gray-50 transition-colors ${isPast && status !== 'pago' ? 'bg-red-50/40' : ''} ${isPrioridade && status !== 'pago' ? 'bg-amber-50/60' : ''}`}
                   >
-                    {/* Botão prioridade */}
                     <td className="px-4 py-3 text-center">
                       {status !== 'pago' && (
                         <button

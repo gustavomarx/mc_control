@@ -1,29 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-body {
-  background: #f9fafb;
-  color: #111827;
-  font-family: Inter, Arial, Helvetica, sans-serif;
+/* ── Design tokens ─────────────────────────────────────────── */
+
+:root {
+  --bordeaux-dark:  #4A1228;
+  --bordeaux-mid:   #6B1E3A;
+  --bordeaux-light: #8B2F50;
+  --rose-gold:      #C9956B;
+  --rose-gold-light:#E8C4A8;
+  --cream:          #FDF6F0;
+  --beige:          #F5E8DD;
+  --warm-gray:      #8B6E6A;
+  --text:           #2C1018;
+  --wa-green:       #25d366;
+  --wa-green-dark:  #128c7e;
+  --wa-green-light: #d4f5e2;
+
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(74,18,40,.06), 0 6px 20px rgba(74,18,40,.08);
 }
+
+/* ── Tailwind theme extension ──────────────────────────────── */
+
+@theme {
+  --color-bordeaux-dark:  #4A1228;
+  --color-bordeaux-mid:   #6B1E3A;
+  --color-bordeaux-light: #8B2F50;
+  --color-rose-gold:      #C9956B;
+  --color-rose-gold-light:#E8C4A8;
+  --color-cream:          #FDF6F0;
+  --color-beige:          #F5E8DD;
+  --color-warm-gray:      #8B6E6A;
+  --color-mc-text:        #2C1018;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+
+body {
+  background: var(--cream);
+  color: var(--text);
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--beige); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rose-gold-light); }
+
+/* ── Utility classes ───────────────────────────────────────── */
 
 @layer components {
   .btn-primary {
-    @apply bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    cursor: pointer;
+    transition: all .18s;
+    background: linear-gradient(135deg, var(--rose-gold) 0%, #b87f56 100%);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(201,149,107,.35);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d4a07a 0%, var(--rose-gold) 100%);
+    box-shadow: 0 4px 14px rgba(201,149,107,.45);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    background: var(--beige);
+    color: #c9b8b5;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    cursor: pointer;
+    transition: all .18s;
+    background: #fff;
+    color: var(--warm-gray);
+    border: 1.5px solid var(--beige);
+  }
+  .btn-secondary:hover {
+    background: var(--cream);
+    border-color: var(--rose-gold-light);
+    color: var(--bordeaux-mid);
   }
 
   .input {
-    @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent bg-white;
+    width: 100%;
+    border: 1.5px solid var(--beige);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 14px;
+    font-family: 'Jost', sans-serif;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .18s, box-shadow .18s;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--rose-gold);
+    box-shadow: 0 0 0 3px rgba(201,149,107,.14);
+  }
+  .input::placeholder { color: #c9b8b5; }
+
+  .input-base {
+    width: 100%;
+    border: 1.5px solid var(--beige);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 14px;
+    font-family: 'Jost', sans-serif;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .18s, box-shadow .18s;
+  }
+  .input-base:focus {
+    outline: none;
+    border-color: var(--rose-gold);
+    box-shadow: 0 0 0 3px rgba(201,149,107,.14);
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--warm-gray);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
   }
 
   .card {
-    @apply bg-white rounded-xl border border-gray-200 p-4;
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--beige);
+    padding: 24px;
   }
 }

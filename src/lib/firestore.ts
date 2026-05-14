@@ -10,8 +10,10 @@ import {
   query,
   where,
   orderBy,
+  onSnapshot,
   Timestamp,
   type QueryConstraint,
+  type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type {
@@ -25,6 +27,8 @@ import type {
   DreConfig,
   Categoria,
   Configuracoes,
+  MensagemTemplate,
+  MensagemEnviada,
 } from '@/types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -38,12 +42,21 @@ export async function getUsuario(uid: string): Promise<Usuario | null> {
   return snap.exists() ? (snap.data() as Usuario) : null
 }
 
+export async function getUsuarios(): Promise<Usuario[]> {
+  const snap = await getDocs(query(col('usuarios'), orderBy('criadoEm', 'asc')))
+  return snap.docs.map(d => d.data() as Usuario)
+}
+
 export async function criarUsuario(uid: string, data: Omit<Usuario, 'uid' | 'criadoEm'>) {
   await setDoc(doc(db, 'usuarios', uid), {
     ...data,
     uid,
     criadoEm: Timestamp.now(),
   })
+}
+
+export async function updateUsuario(uid: string, data: Partial<Omit<Usuario, 'uid' | 'criadoEm'>>) {
+  await updateDoc(doc(db, 'usuarios', uid), data)
 }
 
 // ── Transações ────────────────────────────────────────────────────────────────
@@ -224,4 +237,35 @@ export async function getNomesCNPJ(cnpjs: string[]): Promise<Map<string, string>
 export async function getConfiguracoes(): Promise<Configuracoes | null> {
   const snap = await getDoc(doc(db, 'configuracoes', 'parametros'))
   return snap.exists() ? (snap.data() as Configuracoes) : null
+}
+
+// ── Mensagens Templates ───────────────────────────────────────────────────────
+
+export function onTemplatesMensagens(callback: (templates: MensagemTemplate[]) => void): Unsubscribe {
+  return onSnapshot(
+    query(col('mensagens_templates'), orderBy('criadoEm', 'asc')),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as MensagemTemplate)))
+  )
+}
+
+export async function addTemplateMensagem(data: Omit<MensagemTemplate, 'id' | 'criadoEm' | 'atualizadoEm'>) {
+  const now = Timestamp.now()
+  return addDoc(col('mensagens_templates'), { ...data, criadoEm: now, atualizadoEm: now })
+}
+
+export async function updateTemplateMensagem(id: string, data: Partial<Omit<MensagemTemplate, 'id' | 'criadoEm'>>) {
+  await updateDoc(doc(db, 'mensagens_templates', id), { ...data, atualizadoEm: Timestamp.now() })
+}
+
+// ── Mensagens Enviadas ────────────────────────────────────────────────────────
+
+export function onMensagensEnviadas(callback: (msgs: MensagemEnviada[]) => void): Unsubscribe {
+  return onSnapshot(
+    query(col('mensagens_enviadas'), orderBy('enviadoEm', 'desc')),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as MensagemEnviada)))
+  )
+}
+
+export async function addMensagemEnviada(data: Omit<MensagemEnviada, 'id'>) {
+  return addDoc(col('mensagens_enviadas'), data)
 }
