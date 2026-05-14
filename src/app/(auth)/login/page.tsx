@@ -18,7 +18,7 @@ export default function LoginPage() {
     setCarregando(true)
     try {
       await login(email, senha)
-      router.push('/dashboard')
+      router.push('/home')
     } catch {
       setErro('E-mail ou senha incorretos.')
     } finally {
