@@ -56,13 +56,13 @@ export function useTarefas() {
   }, [])
 
   const adicionar = useCallback(async (
-    data: Omit<Tarefa, 'id' | 'criadoEm' | 'atualizadaEm' | 'historico_conclusoes' | 'concluida'>
+    data: Omit<Tarefa, 'id' | 'criadaEm' | 'atualizadaEm' | 'historico_conclusoes' | 'concluida'>
   ) => {
     await addDoc(collection(db, 'tarefas'), {
       ...data,
       concluida: false,
       historico_conclusoes: [],
-      criadoEm: Timestamp.now(),
+      criadaEm: Timestamp.now(),
       atualizadaEm: Timestamp.now(),
     })
   }, [])
@@ -93,7 +93,7 @@ export function useTarefas() {
       const dataEntrega = tarefa.dataEntrega.toDate()
       const proximaData = calcularProximaData(dataEntrega, tarefa.recorrencia, tarefa.recorrenciaDia)
 
-      const { id: _id, criadoEm: _c, concluidaEm: _ce, ...base } = tarefa as Tarefa & { [key: string]: unknown }
+      const { id: _id, criadaEm: _c, concluidaEm: _ce, ...base } = tarefa as Tarefa & { [key: string]: unknown }
       void _id; void _c; void _ce
 
       await addDoc(collection(db, 'tarefas'), {
@@ -101,7 +101,7 @@ export function useTarefas() {
         concluida: false,
         historico_conclusoes: [],
         dataEntrega: Timestamp.fromDate(proximaData),
-        criadoEm: agora,
+        criadaEm: agora,
         atualizadaEm: agora,
       })
     }

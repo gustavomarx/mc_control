@@ -20,7 +20,7 @@ function toInputDate(ts?: Timestamp): string {
 interface Props {
   tarefa?: Tarefa | null
   onClose: () => void
-  onSalvar: (data: Omit<Tarefa, 'id' | 'criadoEm' | 'atualizadaEm' | 'historico_conclusoes' | 'concluida'>) => Promise<void>
+  onSalvar: (data: Omit<Tarefa, 'id' | 'criadaEm' | 'atualizadaEm' | 'historico_conclusoes' | 'concluida'>) => Promise<void>
   onAtualizar?: (id: string, data: Partial<Tarefa>) => Promise<void>
 }
 
