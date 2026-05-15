@@ -15,7 +15,7 @@ function getSegundaFeira(d: Date): Date {
   return dia
 }
 
-function toLocalKey(d: Date): string {
+export function toLocalKey(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -52,36 +52,53 @@ function isClienteNova(obs: string, dataCadastro: string): boolean {
   return diff <= 30
 }
 
-export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
+// Domingo = não conta (semana é seg-sáb)
+function isDomingo(d: Date): boolean {
+  return d.getDay() === 0
+}
+
+export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
   const buffer = await file.arrayBuffer()
   const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
   const ws = wb.Sheets[wb.SheetNames[0]]
   const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
 
-  const agora = new Date()
-  const chave = semanaKey(agora)
-  const inicioSemana = getSegundaFeira(agora)
-  const fimSemana = new Date(inicioSemana)
-  fimSemana.setDate(fimSemana.getDate() + 5) // seg a sáb
-  fimSemana.setHours(23, 59, 59, 999)
-
-  const agendamentos: AgendamentoAvec[] = []
-  const porDia: Record<string, AgendaDia> = {}
-  const porProfissional: Record<string, Record<string, number>> = {}
-  const porServico = { cilios: 0, unhas: 0, agregados: 0, outros: 0 }
-
-  let totalAtivos = 0
-  let totalCancelados = 0
-  let totalFaltas = 0
-  let clientesNovas = 0
-  const clientesUnicasSet = new Set<string>()
+  // Agrupa dados por semanaKey
+  const semanas = new Map<string, {
+    agendamentos: AgendamentoAvec[]
+    porDia: Record<string, AgendaDia>
+    porProfissional: Record<string, Record<string, number>>
+    porServico: { cilios: number; unhas: number; agregados: number; outros: number }
+    totalAtivos: number
+    totalCancelados: number
+    totalFaltas: number
+    clientesNovas: number
+    clientesUnicasSet: Set<string>
+  }>()
 
   for (const row of rows) {
     const dataReservaStr = String(row['Data Reserva'] ?? row['Data_Reserva'] ?? '')
     const dataReserva = parseDataBR(dataReservaStr)
     if (!dataReserva) continue
-    if (dataReserva < inicioSemana || dataReserva > fimSemana) continue
+    if (isDomingo(dataReserva)) continue
 
+    const chave = semanaKey(dataReserva)
+
+    if (!semanas.has(chave)) {
+      semanas.set(chave, {
+        agendamentos: [],
+        porDia: {},
+        porProfissional: {},
+        porServico: { cilios: 0, unhas: 0, agregados: 0, outros: 0 },
+        totalAtivos: 0,
+        totalCancelados: 0,
+        totalFaltas: 0,
+        clientesNovas: 0,
+        clientesUnicasSet: new Set(),
+      })
+    }
+
+    const s = semanas.get(chave)!
     const status = String(row['Status'] ?? '') as StatusAgendamento
     const profissional = String(row['Profissional'] ?? '').trim()
     const servico = String(row['Serviço'] ?? row['Servico'] ?? '').trim()
@@ -101,51 +118,52 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
       observacao: obs,
       clienteNova: nova,
     }
-    agendamentos.push(agendamento)
+    s.agendamentos.push(agendamento)
 
     const dataKey = toLocalKey(dataReserva)
-    if (!porDia[dataKey]) {
-      porDia[dataKey] = { ativos: 0, confirmados: 0, aguardando: 0, agendados: 0, cancelados: 0, faltas: 0 }
+    if (!s.porDia[dataKey]) {
+      s.porDia[dataKey] = { ativos: 0, confirmados: 0, aguardando: 0, agendados: 0, cancelados: 0, faltas: 0 }
     }
 
     if (status === 'Cancelado') {
-      totalCancelados++
-      porDia[dataKey].cancelados++
+      s.totalCancelados++
+      s.porDia[dataKey].cancelados++
     } else if (status === 'Faltou') {
-      totalFaltas++
-      porDia[dataKey].faltas++
+      s.totalFaltas++
+      s.porDia[dataKey].faltas++
     } else if (STATUS_ATIVOS.includes(status)) {
-      totalAtivos++
-      porDia[dataKey].ativos++
-      if (status === 'Confirmado') porDia[dataKey].confirmados++
-      if (status === 'Aguardando') porDia[dataKey].aguardando++
-      if (status === 'Agendado') porDia[dataKey].agendados++
-      if (nova) clientesNovas++
+      s.totalAtivos++
+      s.porDia[dataKey].ativos++
+      if (status === 'Confirmado') s.porDia[dataKey].confirmados++
+      if (status === 'Aguardando') s.porDia[dataKey].aguardando++
+      if (status === 'Agendado') s.porDia[dataKey].agendados++
+      if (nova) s.clientesNovas++
       const nomeCliente = agendamento.cliente.toLowerCase().trim()
-      if (nomeCliente) clientesUnicasSet.add(nomeCliente)
+      if (nomeCliente) s.clientesUnicasSet.add(nomeCliente)
 
       const cat = classificarServico(servico)
-      porServico[cat]++
+      s.porServico[cat]++
 
       if (profissional) {
-        if (!porProfissional[profissional]) porProfissional[profissional] = {}
-        porProfissional[profissional][dataKey] = (porProfissional[profissional][dataKey] ?? 0) + 1
+        if (!s.porProfissional[profissional]) s.porProfissional[profissional] = {}
+        s.porProfissional[profissional][dataKey] = (s.porProfissional[profissional][dataKey] ?? 0) + 1
       }
     }
   }
 
-  return {
+  const agora = Timestamp.now()
+  return Array.from(semanas.entries()).map(([chave, s]) => ({
     id: chave,
     semanaKey: chave,
-    uploadEm: Timestamp.now(),
-    totalAtivos,
-    totalCancelados,
-    totalFaltas,
-    clientesUnicas: clientesUnicasSet.size,
-    clientesNovas,
-    porDia,
-    porProfissional,
-    porServico,
-    agendamentos,
-  }
+    uploadEm: agora,
+    totalAtivos: s.totalAtivos,
+    totalCancelados: s.totalCancelados,
+    totalFaltas: s.totalFaltas,
+    clientesUnicas: s.clientesUnicasSet.size,
+    clientesNovas: s.clientesNovas,
+    porDia: s.porDia,
+    porProfissional: s.porProfissional,
+    porServico: s.porServico,
+    agendamentos: s.agendamentos,
+  }))
 }

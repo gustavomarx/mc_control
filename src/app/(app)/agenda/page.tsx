@@ -251,12 +251,12 @@ export default function AgendaPage() {
     if (!file) return
     setUploading(true)
     try {
-      const agenda = await parseAgendaAvec(file)
-      await salvarAgenda(agenda)
-      setSemanaVis(agenda.semanaKey)
+      const agendas = await parseAgendaAvec(file)
+      await salvarAgenda(agendas)
+      setSemanaVis(null) // volta para semana atual
     } catch (e) {
       console.error(e)
-      alert('Erro ao processar o arquivo. Verifique se é o relatório 0013 do AVEC.')
+      alert('Erro ao processar o arquivo. Verifique se é o relatório 0051 do AVEC.')
     } finally {
       setUploading(false)
     }

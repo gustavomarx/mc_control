@@ -36,10 +36,23 @@ export function useAgenda() {
     })
   }, [])
 
-  const agendaAtual = historico[0] ?? null
+  const agendaAtual = (() => {
+    const hoje = new Date()
+    const dow = hoje.getDay()
+    const diff = dow === 0 ? -6 : 1 - dow
+    const seg = new Date(hoje)
+    seg.setDate(hoje.getDate() + diff)
+    seg.setHours(0, 0, 0, 0)
+    const y = seg.getFullYear()
+    const m = String(seg.getMonth() + 1).padStart(2, '0')
+    const d = String(seg.getDate()).padStart(2, '0')
+    const chaveHoje = `${y}-${m}-${d}`
+    return historico.find(h => h.semanaKey === chaveHoje) ?? historico[0] ?? null
+  })()
 
-  const salvarAgenda = useCallback(async (agenda: Omit<AgendaAvec, 'id'>) => {
-    await setDoc(doc(db, 'agenda_avec', agenda.semanaKey), agenda)
+  const salvarAgenda = useCallback(async (agendas: AgendaAvec | AgendaAvec[]) => {
+    const lista = Array.isArray(agendas) ? agendas : [agendas]
+    await Promise.all(lista.map(a => setDoc(doc(db, 'agenda_avec', a.semanaKey), a)))
   }, [])
 
   const salvarMeta = useCallback(async (meta: number, semanaKey: string) => {
