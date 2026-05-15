@@ -32,13 +32,20 @@ function fraseContextual(unicas: number, meta: number): { texto: string; cor: st
   return { texto: `Semana crítica: ${falta} cliente${falta > 1 ? 's' : ''} abaixo da meta — ação imediata necessária`, cor: 'text-red-600' }
 }
 
+function toLocalKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function diasDaSemana(semanaKey: string): string[] {
   const [ano, mes, dia] = semanaKey.split('-').map(Number)
   const segunda = new Date(ano, mes - 1, dia)
   return Array.from({ length: 6 }, (_, i) => {
     const d = new Date(segunda)
     d.setDate(d.getDate() + i)
-    return d.toISOString().slice(0, 10)
+    return toLocalKey(d)
   })
 }
 

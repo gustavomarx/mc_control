@@ -15,8 +15,15 @@ function getSegundaFeira(d: Date): Date {
   return dia
 }
 
+function toLocalKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function semanaKey(d: Date): string {
-  return getSegundaFeira(d).toISOString().slice(0, 10)
+  return toLocalKey(getSegundaFeira(d))
 }
 
 function parseDataBR(str: string): Date | null {
@@ -96,7 +103,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
     }
     agendamentos.push(agendamento)
 
-    const dataKey = dataReserva.toISOString().slice(0, 10)
+    const dataKey = toLocalKey(dataReserva)
     if (!porDia[dataKey]) {
       porDia[dataKey] = { ativos: 0, confirmados: 0, aguardando: 0, agendados: 0, cancelados: 0, faltas: 0 }
     }
