@@ -6,7 +6,7 @@ import { parseAgendaAvec } from '@/lib/parse-agenda'
 import type { AgendaAvec } from '@/types'
 
 const DIAS_PT: Record<number, string> = { 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb', 0: 'Dom' }
-const AVEC_URL = 'https://admin.avec.beauty/admin/relatorio/0013'
+const AVEC_URL = 'https://admin.avec.beauty/admin/relatorio/0051'
 
 function formatarMoeda(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
