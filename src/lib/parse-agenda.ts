@@ -55,7 +55,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
   const chave = semanaKey(agora)
   const inicioSemana = getSegundaFeira(agora)
   const fimSemana = new Date(inicioSemana)
-  fimSemana.setDate(fimSemana.getDate() + 6)
+  fimSemana.setDate(fimSemana.getDate() + 5) // seg a sáb
   fimSemana.setHours(23, 59, 59, 999)
 
   const agendamentos: AgendamentoAvec[] = []
