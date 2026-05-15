@@ -1,6 +1,13 @@
 import * as XLSX from 'xlsx'
-import { normalizarCelular } from './crm-messages'
 import type { RecuperacaoStatus } from '@/types'
+
+// Mesma normalização do parse-agenda-cross para garantir match no cruzamento
+function normTel(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('55') && digits.length === 13) return digits.slice(2)
+  if (digits.startsWith('55') && digits.length === 12) return digits.slice(2)
+  return digits
+}
 
 export interface ResultadoParseRecuperacao {
   clientes: Omit<RecuperacaoStatus, 'status' | 'atualizadoEm'>[]
@@ -30,7 +37,7 @@ export async function parseRecuperacao(file: File): Promise<ResultadoParseRecupe
   for (const row of rows) {
     const nome = String(row['Cliente'] ?? '').trim()
     const celularRaw = String(row['Celular'] ?? row['Telefone'] ?? '').trim()
-    const celular = normalizarCelular(celularRaw)
+    const celular = normTel(celularRaw)
     const ultimaVisitaStr = String(row['Última Visita'] ?? row['Ultima Visita'] ?? '').trim()
 
     if (!nome || !celular) continue

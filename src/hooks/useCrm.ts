@@ -7,7 +7,7 @@ import {
 import { db } from '@/lib/firebase'
 import type { AniversarianteStatus, RecuperacaoStatus, StatusAniversariante, StatusRecuperacao } from '@/types'
 import { parseAniversariantes } from '@/lib/parse-aniversariantes'
-import { parseRecuperacao } from '@/lib/parse-recuperacao'
+import { parseAgenda0051 } from '@/lib/parse-agenda-cross'
 
 interface UploadInfo {
   uploadEm: Timestamp
@@ -18,7 +18,7 @@ export function useCrm() {
   const [aniversariantes, setAniversariantes] = useState<AniversarianteStatus[]>([])
   const [clientes, setClientes] = useState<RecuperacaoStatus[]>([])
   const [uploadInfoAniv, setUploadInfoAniv] = useState<UploadInfo | null>(null)
-  const [uploadInfoRec, setUploadInfoRec] = useState<UploadInfo | null>(null)
+  const [uploadInfo0051, setUploadInfo0051] = useState<UploadInfo | null>(null)
   const [loadingAniv, setLoadingAniv] = useState(true)
   const [loadingRec, setLoadingRec] = useState(true)
 
@@ -42,9 +42,28 @@ export function useCrm() {
     getDoc(doc(db, 'configuracoes', 'aniversariantes_upload')).then(snap => {
       if (snap.exists()) setUploadInfoAniv(snap.data() as UploadInfo)
     })
-    getDoc(doc(db, 'configuracoes', 'recuperacao_upload')).then(snap => {
-      if (snap.exists()) setUploadInfoRec(snap.data() as UploadInfo)
+    getDoc(doc(db, 'configuracoes', 'agenda_0051_upload')).then(snap => {
+      if (snap.exists()) setUploadInfo0051(snap.data() as UploadInfo)
     })
+  }, [])
+
+  const uploadAgenda0051 = useCallback(async (file: File) => {
+    const { recuperacao } = await parseAgenda0051(file)
+    const agora = Timestamp.now()
+
+    await Promise.all(
+      recuperacao.map(c =>
+        setDoc(doc(db, 'recuperacao_status', c.id), {
+          ...c,
+          status: 'nao_contatada',
+          atualizadoEm: agora,
+        }, { merge: true })
+      )
+    )
+
+    const info: UploadInfo = { uploadEm: agora, totalClientes: recuperacao.length }
+    await setDoc(doc(db, 'configuracoes', 'agenda_0051_upload'), info)
+    setUploadInfo0051(info)
   }, [])
 
   const uploadAniversariantes = useCallback(async (file: File) => {
@@ -66,24 +85,6 @@ export function useCrm() {
     setUploadInfoAniv(info)
   }, [])
 
-  const uploadRecuperacao = useCallback(async (file: File) => {
-    const { clientes, total } = await parseRecuperacao(file)
-    const agora = Timestamp.now()
-
-    await Promise.all(
-      clientes.map(c =>
-        setDoc(doc(db, 'recuperacao_status', c.id), {
-          ...c,
-          status: 'nao_contatada',
-          atualizadoEm: agora,
-        }, { merge: true })
-      )
-    )
-
-    const info: UploadInfo = { uploadEm: agora, totalClientes: total }
-    await setDoc(doc(db, 'configuracoes', 'recuperacao_upload'), info)
-    setUploadInfoRec(info)
-  }, [])
 
   const atualizarStatusAniv = useCallback(async (celular: string, status: StatusAniversariante) => {
     await updateDoc(doc(db, 'aniversariantes_status', celular), {
@@ -105,9 +106,9 @@ export function useCrm() {
     loadingAniv,
     loadingRec,
     uploadInfoAniv,
-    uploadInfoRec,
+    uploadInfo0051,
     uploadAniversariantes,
-    uploadRecuperacao,
+    uploadAgenda0051,
     atualizarStatusAniv,
     atualizarStatusRec,
   }

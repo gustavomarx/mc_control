@@ -310,6 +310,8 @@ export interface RecuperacaoStatus {
   diasSemRetorno: number
   celular: string
   email?: string
+  isModelo: boolean
+  alertaCancelamento?: string   // "Cancelou em DD/MM/YYYY" ou "Faltou em DD/MM/YYYY"
   status: StatusRecuperacao
   atualizadoEm: Timestamp
 }

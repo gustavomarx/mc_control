@@ -24,6 +24,7 @@ interface Props {
 
 export default function CardRecuperacao({ cliente, onAtualizarStatus }: Props) {
   const [copiado, setCopiado] = useState(false)
+  const [tooltipVis, setTooltipVis] = useState(false)
 
   function copiarMensagem() {
     navigator.clipboard.writeText(msgRecuperacao(cliente.nome))
@@ -38,7 +39,23 @@ export default function CardRecuperacao({ cliente, onAtualizarStatus }: Props) {
     <div className="bg-white rounded-xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">{cliente.nome}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-semibold text-gray-900">{cliente.nome}</p>
+            {cliente.alertaCancelamento && (
+              <span
+                className="relative cursor-default"
+                onMouseEnter={() => setTooltipVis(true)}
+                onMouseLeave={() => setTooltipVis(false)}
+              >
+                <span className="text-amber-500 text-sm">⚠️</span>
+                {tooltipVis && (
+                  <span className="absolute z-20 left-6 top-0 w-52 bg-gray-800 text-white text-xs rounded-lg p-2 leading-relaxed shadow-lg whitespace-normal">
+                    {cliente.alertaCancelamento}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-400 mt-0.5">Última visita: {cliente.ultimaVisita}</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">

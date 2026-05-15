@@ -1,16 +1,19 @@
 'use client'
 
 import { useState, useRef, useMemo } from 'react'
+import * as XLSX from 'xlsx'
 import { useCrm } from '@/hooks/useCrm'
 import CardAniversariante from '@/components/crm/CardAniversariante'
 import CardRecuperacao from '@/components/crm/CardRecuperacao'
+import { periodoExportacao } from '@/lib/parse-agenda-cross'
 import type { AniversarianteStatus, StatusAniversariante, StatusRecuperacao } from '@/types'
 
 type AbaAniv = 'hoje' | 'semana' | 'mes'
-type FiltroRec = 'todos' | 'nao_contatadas'
+type AbaRec = 'todos' | 'clientes' | 'modelos'
+type FiltroRec = 'todos' | 'nao_contatadas' | 'contatadas'
 
 const AVEC_ANIV = 'https://admin.avec.beauty/admin/relatorio/0001'
-const AVEC_REC = 'https://admin.avec.beauty/admin/relatorio/0057'
+const AVEC_AGENDA = 'https://admin.avec.beauty/admin/relatorio/0051'
 
 function getMesAtual() {
   const d = new Date()
@@ -62,20 +65,24 @@ export default function CrmPage() {
   const {
     aniversariantes, clientes,
     loadingAniv, loadingRec,
-    uploadInfoAniv, uploadInfoRec,
-    uploadAniversariantes, uploadRecuperacao,
+    uploadInfoAniv, uploadInfo0051,
+    uploadAniversariantes, uploadAgenda0051,
     atualizarStatusAniv, atualizarStatusRec,
   } = useCrm()
 
+  const periodo = periodoExportacao()
+
   const [aba, setAba] = useState<'aniversariantes' | 'recuperacao'>('aniversariantes')
   const [abaAniv, setAbaAniv] = useState<AbaAniv>('hoje')
+  const [abaRec, setAbaRec] = useState<AbaRec>('todos')
   const [filtroRec, setFiltroRec] = useState<FiltroRec>('todos')
   const [soNaoContatadas, setSoNaoContatadas] = useState(false)
   const [uploadingAniv, setUploadingAniv] = useState(false)
-  const [uploadingRec, setUploadingRec] = useState(false)
+  const [uploading0051, setUploading0051] = useState(false)
+  const [diasMinimos, setDiasMinimos] = useState(21)
 
   const inputAnivRef = useRef<HTMLInputElement>(null)
-  const inputRecRef = useRef<HTMLInputElement>(null)
+  const inputAgendaRef = useRef<HTMLInputElement>(null)
 
   async function handleUploadAniv(file: File) {
     setUploadingAniv(true)
@@ -89,15 +96,30 @@ export default function CrmPage() {
     }
   }
 
-  async function handleUploadRec(file: File) {
-    setUploadingRec(true)
+  function gerarArquivoMensagens() {
+    const lista = clientesFiltrados.filter(c => c.diasSemRetorno >= diasMinimos)
+    if (lista.length === 0) return
+
+    const dados = lista.map(c => ({ cliente: c.nome, celular: c.celular, status: 'Recuperacao' }))
+    const ws = XLSX.utils.json_to_sheet(dados)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Recuperação')
+
+    const segmento = abaRec === 'modelos' ? 'modelos' : abaRec === 'clientes' ? 'clientes' : 'todos'
+    const hoje = new Date()
+    const data = `${String(hoje.getDate()).padStart(2, '0')}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${hoje.getFullYear()}`
+    XLSX.writeFile(wb, `recuperacao_${segmento}_${diasMinimos}d_${data}.xlsx`)
+  }
+
+  async function handleUpload0051(file: File) {
+    setUploading0051(true)
     try {
-      await uploadRecuperacao(file)
+      await uploadAgenda0051(file)
     } catch (e) {
       console.error(e)
-      alert('Erro ao processar o arquivo. Verifique se é o relatório 0057 do AVEC.')
+      alert('Erro ao processar o arquivo. Verifique se é o relatório 0051 do AVEC.')
     } finally {
-      setUploadingRec(false)
+      setUploading0051(false)
     }
   }
 
@@ -109,12 +131,18 @@ export default function CrmPage() {
 
   const clientesFiltrados = useMemo(() => {
     let lista = [...clientes].sort((a, b) => b.diasSemRetorno - a.diasSemRetorno)
+    // Aba: clientes vs modelos (isModelo vem direto do Firestore)
+    if (abaRec === 'clientes') lista = lista.filter(c => !c.isModelo)
+    else if (abaRec === 'modelos') lista = lista.filter(c => c.isModelo)
+    // Filtro secundário de contato
     if (filtroRec === 'nao_contatadas') lista = lista.filter(c => c.status === 'nao_contatada')
+    if (filtroRec === 'contatadas') lista = lista.filter(c => c.status === 'contatada')
     return lista
-  }, [clientes, filtroRec])
+  }, [clientes, filtroRec, abaRec])
 
   const totalNaoContatadas = aniversariantes.filter(c => c.status === 'nao_contatada').length
   const totalNaoContatadasRec = clientes.filter(c => c.status === 'nao_contatada').length
+  const totalModelos = clientes.filter(c => c.isModelo).length
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -224,65 +252,126 @@ export default function CrmPage() {
         {/* ABA: Recuperação */}
         {aba === 'recuperacao' && (
           <div>
+            {/* Instrução com período calculado */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+              <span className="text-base mt-0.5">📋</span>
+              <div className="text-xs text-amber-800 leading-relaxed">
+                <p className="font-semibold mb-1">Exporte o relatório <strong>0051</strong> no AVEC com o período:</p>
+                <p className="text-sm font-bold text-amber-900">{periodo.label}</p>
+                <p className="mt-1 text-amber-600">A lista de recuperação e a identificação de modelos são geradas automaticamente. Clientes com agendamento futuro são excluídas.</p>
+              </div>
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                {uploadInfoRec && (
+              <div>
+                {uploadInfo0051 && (
                   <span className="text-xs text-gray-400">
-                    {uploadInfoRec.totalClientes} clientes · atualizado {uploadInfoRec.uploadEm.toDate().toLocaleDateString('pt-BR')}
+                    {uploadInfo0051.totalClientes} clientes · atualizado {uploadInfo0051.uploadEm.toDate().toLocaleDateString('pt-BR')}
                   </span>
                 )}
               </div>
               <div className="flex gap-2">
-                <a href={AVEC_REC} target="_blank" rel="noopener noreferrer"
+                <a href={AVEC_AGENDA} target="_blank" rel="noopener noreferrer"
                   className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-white transition-colors">
-                  Abrir no AVEC ↗
+                  Abrir 0051 no AVEC ↗
                 </a>
                 <button
-                  onClick={() => inputRecRef.current?.click()}
-                  disabled={uploadingRec}
+                  onClick={() => inputAgendaRef.current?.click()}
+                  disabled={uploading0051}
                   className="px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg disabled:opacity-50 transition-colors"
                 >
-                  {uploadingRec ? 'Processando...' : 'Upload XLSX'}
+                  {uploading0051 ? 'Processando...' : 'Upload 0051'}
                 </button>
-                <input ref={inputRecRef} type="file" accept=".xlsx,.xls" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadRec(f); e.target.value = '' }} />
+                <input ref={inputAgendaRef} type="file" accept=".xlsx,.xls" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload0051(f); e.target.value = '' }} />
               </div>
             </div>
 
-            {/* Indicador de retenção */}
+            {/* Painel de números */}
             {clientes.length > 0 && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 flex items-center gap-3">
-                <span className="text-lg">📊</span>
-                <div>
-                  <p className="text-sm font-medium text-blue-800">
-                    {clientes.filter(c => c.status === 'agendou').length} de {clientes.length} clientes já retornaram
-                    {' '}({clientes.length > 0 ? ((clientes.filter(c => c.status === 'agendou').length / clientes.length) * 100).toFixed(0) : 0}%)
-                  </p>
-                  <p className="text-xs text-blue-600 mt-0.5">{totalNaoContatadasRec} ainda não contatadas</p>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-gray-900">{clientes.length}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Para recuperar</p>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-purple-700">{totalModelos}</p>
+                  <p className="text-xs text-purple-600 mt-0.5">Modelos</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-amber-700">{totalNaoContatadasRec}</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Não contatadas</p>
                 </div>
               </div>
             )}
 
-            {/* Filtros */}
-            <div className="flex gap-2 mb-4">
-              {([
-                { v: 'todos', label: 'Todos' },
-                { v: 'nao_contatadas', label: 'Só não contatadas' },
-              ] as const).map(({ v, label }) => (
-                <button
-                  key={v}
-                  onClick={() => setFiltroRec(v)}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
-                    filtroRec === v
-                      ? 'bg-emerald-500 text-white font-medium'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* Abas: Todos / Clientes / Modelos */}
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                {([
+                  { v: 'todos', label: 'Todos' },
+                  { v: 'clientes', label: 'Clientes' },
+                  { v: 'modelos', label: 'Modelos' },
+                ] as const).map(({ v, label }) => (
+                  <button
+                    key={v}
+                    onClick={() => setAbaRec(v)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                      abaRec === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filtro secundário de contato */}
+              <div className="flex gap-1">
+                {([
+                  { v: 'todos', label: 'Todas' },
+                  { v: 'nao_contatadas', label: 'Não contatada' },
+                  { v: 'contatadas', label: 'Contatada' },
+                ] as const).map(({ v, label }) => (
+                  <button
+                    key={v}
+                    onClick={() => setFiltroRec(v)}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                      filtroRec === v
+                        ? 'bg-emerald-500 text-white font-medium'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Gerador de arquivo para mensagens */}
+            {clientesFiltrados.length > 0 && (
+              <div className="flex items-center gap-3 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-3">
+                <span className="text-xs text-gray-600 shrink-0">Gerar arquivo a partir de</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={diasMinimos}
+                  onChange={e => setDiasMinimos(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-xs text-gray-600 shrink-0">dias sem retorno</span>
+                <span className="text-xs text-gray-400 shrink-0">
+                  ({clientesFiltrados.filter(c => c.diasSemRetorno >= diasMinimos).length} clientes)
+                </span>
+                <button
+                  onClick={gerarArquivoMensagens}
+                  disabled={clientesFiltrados.filter(c => c.diasSemRetorno >= diasMinimos).length === 0}
+                  className="ml-auto px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg disabled:opacity-40 transition-colors shrink-0"
+                >
+                  ⬇ Baixar XLSX
+                </button>
+              </div>
+            )}
 
             {loadingRec ? (
               <p className="text-sm text-gray-400 text-center py-8">Carregando...</p>
@@ -290,8 +379,8 @@ export default function CrmPage() {
               <div className="text-center py-16">
                 <p className="text-gray-400 text-sm">
                   {clientes.length === 0
-                    ? 'Nenhum dado ainda. Faça upload do relatório 0057.'
-                    : 'Nenhum cliente neste filtro.'}
+                    ? 'Nenhum dado ainda. Faça upload do relatório 0051.'
+                    : 'Nenhuma cliente neste filtro.'}
                 </p>
               </div>
             ) : (

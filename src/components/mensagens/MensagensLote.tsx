@@ -23,7 +23,7 @@ interface RegistroProcessado extends AgendamentoRaw {
 
 // ── Utilities ──────────────────────────────────────────────────────────────────
 
-const STATUS_OPCOES = ['Agendado', 'Confirmado', 'Aguardando', 'Em Atendimento', 'Pago', 'Finalizado', 'Faltou', 'Cancelado']
+const STATUS_OPCOES = ['Agendado', 'Confirmado', 'Aguardando', 'Em Atendimento', 'Pago', 'Finalizado', 'Faltou', 'Cancelado', 'Recuperacao']
 
 function normalizarData(v: unknown): string {
   if (!v) return ''
@@ -113,10 +113,15 @@ function lerXlsx(arrayBuffer: ArrayBuffer): AgendamentoRaw[] {
   return registros
 }
 
+function normStatus(s: string): string {
+  return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
 function filtrarEDeduplicar(registros: AgendamentoRaw[], statusFiltro: string[]): RegistroProcessado[] {
-  const lista = statusFiltro.length === 0
+  const filtroNorm = statusFiltro.map(normStatus)
+  const lista = filtroNorm.length === 0
     ? registros
-    : registros.filter(r => statusFiltro.includes(r.status))
+    : registros.filter(r => filtroNorm.includes(normStatus(r.status)))
 
   const map = new Map<string, RegistroProcessado>()
   for (const r of lista) {

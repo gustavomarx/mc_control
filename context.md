@@ -1,131 +1,176 @@
-# mc_finance — Sistema Financeiro Studio Meus Cílios
+# mc_control — Sistema de Gestão Studio Meus Cílios
 
 ## Empresa
 G&G Company LTDA — CNPJ 51.307.997/0001-68  
 Nome fantasia: Studio Meus Cílios | São José – SC  
 Franqueadora: Studio Meus Cílios (royalties 7,5% + fundo mkt 2%)  
-Banco PJ: Sicoob | Sistema de agendamento/faturamento: AVEC
+Banco PJ: Sicoob | Sistema de agendamento/faturamento: AVEC (admin.avec.beauty)
 
 ## Stack
 - Next.js 16.2.4 (App Router, Turbopack) + TypeScript
 - Firebase Auth + Firestore (client SDK) + Firebase Admin SDK (API routes)
 - Tailwind CSS v4
-- Vercel (deploy automático via GitHub)
-- pdf-parse v2.4.5 (parser Sicoob) | xlsx (exportação Excel)
+- Vercel (deploy automático via GitHub push para master)
+- pdf-parse v2.4.5 (parser Sicoob) | xlsx (parse e exportação Excel)
 - GitHub: gustavomarx/mc_finance (branch master)
+- Port local: 3010
 
 ## Firebase
 - Projeto: mc-finance-2b96f
-- Auth: habilitado (email/senha), usuário gustavomarx15@gmail.com
+- Auth: email/senha — usuário gustavomarx15@gmail.com
 - Firestore: southamerica-east1
-- Seed: 18 categorias, 15 contas a pagar, 7 profissionais, configurações
-- Coleções: `contas_pagar`, `transacoes`, `extratos`, `categorias`, `configuracoes`, `cnpj_cache`, `profissionais`, `faturamento_avec`, `dre_mensal`, `dre_config`
+- Coleções:
+  - `contas_pagar`, `transacoes`, `extratos`, `categorias`, `configuracoes`
+  - `cnpj_cache`, `profissionais`, `faturamento_avec`, `dre_mensal`, `dre_config`
+  - `tarefas`, `agenda_avec`, `comissoes`, `caixa_formas`
+  - `aniversariantes_status`, `recuperacao_status`
+  - `mensagem_templates`, `mensagens_enviadas`
 
 ## Estrutura de rotas
 ```
-/login              → página pública
-/dashboard          → Módulo 1
-/extrato            → Módulo 2
-/contas             → Módulo 3
-/dre                → Módulo 4
+/login                → pública
+/(app)/home           → visão geral do dia
+/(app)/dashboard      → financeiro semanal
+/(app)/extrato        → upload e categorização de extrato bancário
+/(app)/contas         → contas a pagar recorrentes
+/(app)/dre            → DRE mensal (wizard)
+/(app)/comissoes      → upload planilha de comissões AVEC
+/(app)/caixa          → formas de pagamento por período
+/(app)/tarefas        → gestão de tarefas com recorrência
+/(app)/agenda         → relatório semanal de agendamentos AVEC
+/(app)/crm            → aniversariantes + recuperação de clientes
+/(app)/mensagens      → envio de mensagens em lote e individual
 ```
 
 ## Módulos — status
-| Módulo | Descrição | Status |
-|--------|-----------|--------|
-| 1 — Dashboard semanal | Contas 2 semanas + saldo PJ + gap + prioridades | **Concluído** |
-| 2 — Extrato bancário | Upload PDF Sicoob, parse, enriquecimento CNPJ, categorização, salvar | **Concluído** |
-| 3 — Contas a pagar | CRUD recorrentes, filtro mês/tipo, retroativo, acumulado atrasados | **Concluído** |
-| 4 — DRE mensal | Wizard 3 etapas: Informações AVEC + seleção de extrato + DRE por grupos, histórico, pré-visualização + exportação Excel | **Concluído** |
+
+| Módulo | Rota | Status |
+|--------|------|--------|
+| Home | `/home` | Concluído |
+| Dashboard financeiro | `/dashboard` | Concluído |
+| Extrato bancário | `/extrato` | Concluído |
+| Contas a pagar | `/contas` | Concluído |
+| DRE mensal | `/dre` | Concluído |
+| Comissões | `/comissoes` | Concluído |
+| Caixa (formas pgto) | `/caixa` | Concluído |
+| Tarefas | `/tarefas` | Concluído |
+| Agenda AVEC | `/agenda` | Concluído |
+| CRM | `/crm` | Concluído |
+| Mensagens | `/mensagens` | Concluído |
 
 ## Arquivos — estrutura atual
 ```
 src/
 ├── app/
-│   ├── api/extrato/route.ts         ← POST PDF → parse + enriquecimento CNPJ → JSON
+│   ├── api/extrato/route.ts
 │   ├── (auth)/login/page.tsx
 │   ├── (app)/layout.tsx
-│   ├── (app)/dashboard/page.tsx     ← Módulo 1
-│   ├── (app)/extrato/page.tsx       ← Módulo 2
-│   ├── (app)/contas/page.tsx        ← Módulo 3
-│   ├── (app)/dre/page.tsx           ← placeholder
-│   └── layout.tsx
+│   ├── (app)/home/page.tsx
+│   ├── (app)/dashboard/page.tsx
+│   ├── (app)/extrato/page.tsx
+│   ├── (app)/contas/page.tsx
+│   ├── (app)/dre/page.tsx
+│   ├── (app)/comissoes/page.tsx
+│   ├── (app)/caixa/page.tsx
+│   ├── (app)/tarefas/page.tsx
+│   ├── (app)/agenda/page.tsx
+│   ├── (app)/crm/page.tsx
+│   └── (app)/mensagens/page.tsx
 ├── contexts/AuthContext.tsx
-├── proxy.ts                         ← guard de autenticação (era middleware.ts, renomeado no Next.js 16)
+├── proxy.ts                         ← guard de auth (Next.js 16: era middleware.ts)
 ├── hooks/
 │   ├── useContasPagar.ts
-│   └── useDashboard.ts
+│   ├── useDashboard.ts
+│   ├── useAgenda.ts
+│   ├── useCrm.ts
+│   └── useMensagens.ts
 ├── lib/
-│   ├── firebase.ts                  ← client SDK
-│   ├── firebase-admin.ts            ← admin SDK (API routes); lê service-account.json local ou FIREBASE_SERVICE_ACCOUNT env
-│   ├── firestore.ts                 ← helpers Firestore client
+│   ├── firebase.ts
+│   ├── firebase-admin.ts
+│   ├── firestore.ts
 │   ├── utils.ts
-│   ├── categorias.ts                ← autoCategoria(desc, categorias[])
-│   └── sicoob-parser.ts             ← parseSicoob(text) → ResultadoParse + LancamentoParsed (com cnpj?, nomeEmpresa?)
+│   ├── categorias.ts
+│   ├── sicoob-parser.ts
+│   ├── crm-messages.ts              ← msgRecuperacao(), linkWhatsApp()
+│   ├── parse-agenda.ts              ← parseAgendaAvec(), toLocalKey()
+│   ├── parse-agenda-cross.ts        ← parseAgenda0051(), periodoExportacao()
+│   ├── parse-aniversariantes.ts
+│   └── parse-recuperacao.ts
 ├── types/index.ts
 └── components/
     ├── ui/Sidebar.tsx
-    └── contas/
-        ├── ModalConta.tsx
-        └── ModalPagamento.tsx
+    ├── contas/ModalConta.tsx, ModalPagamento.tsx
+    ├── crm/CardAniversariante.tsx, CardRecuperacao.tsx
+    └── mensagens/MensagensLote.tsx, MensagensIndividual.tsx (se existir)
 scripts/seed.ts
 ```
 
-## Módulo 2 — Extrato Bancário (detalhes)
+## Módulo Home
+- Tarefas pendentes **apenas do dia de hoje** (filtradas por `dataEntrega`)
+- Empty state: "Sem tarefas para hoje — ou todas foram concluídas 🎉"
 
-### Fluxo
-1. Upload PDF → POST `/api/extrato` → `PDFParse` extrai texto → `parseSicoob` → enriquecimento CNPJ → JSON
-2. Tabela editável: busca por texto, ordenação por qualquer coluna, seleção múltipla para categorização em lote
-3. Edição inline: descrição (clique), categoria (select), tipo C/D (toggle), excluir linha
-4. Clica "Salvar extrato" → cria doc `Extrato` + N docs `Transacao` no Firestore (débitos com valor negativo)
+## Módulo Agenda AVEC
+- Relatório: `https://admin.avec.beauty/admin/relatorio/0051`
+- Semana: **seg a sáb** (domingo excluído)
+- `toLocalKey(d)` — converte Date para `YYYY-MM-DD` local (evita bug UTC-3 do `toISOString()`)
+- `parseAgendaAvec(file)` → retorna `AgendaAvec[]` (uma por semana do arquivo)
+- `agendaAtual` = semana corrente pelo `semanaKey`; fallback = `historico[0]`
+- Meta: **clientes únicas** (`clientesUnicas`); agendamentos totais exibidos como secundário
+- Label das semanas: "Semana de 11 a 16 de Mai"
+- Upload salva todas as semanas do arquivo em paralelo no Firestore (`agenda_avec/{semanaKey}`)
 
-### pdf-parse v2 — uso
-```ts
-import { PDFParse } from 'pdf-parse'
-const p = new PDFParse({ data: buffer })
-const r = await p.getText({ cellSeparator: '  ', pageJoiner: '\n' })
-await p.destroy()
-// r.text → texto completo
-```
+## Módulo CRM — Aniversariantes
+- Relatório AVEC: `https://admin.avec.beauty/admin/relatorio/0001`
+- Sub-abas: Hoje / Esta semana / Este mês
+- Filtro: Só não contatadas
+- Status: `nao_contatada | mensagem_enviada | agendou`
+- Coleção Firestore: `aniversariantes_status`
 
-### Enriquecimento CNPJ
-- Extrai CNPJ da descrição original (formato Sicoob: `11.377.588 0001-13`)
-- Busca nome na BrasilAPI com headers de browser (sem User-Agent → Forbidden)
-- Cache em Firestore `cnpj_cache/{digits}` → evita chamadas repetidas em produção
-- Cache em memória para duração da instância serverless
-- Exibido na linha discreta abaixo da descrição: `Nome Empresa · XX.XXX.XXX/XXXX-XX`
+## Módulo CRM — Recuperação
+- Relatório único: **0051** com período `início de 2 meses atrás → fim do próximo mês`
+  - `periodoExportacao()` calcula e exibe o período exato ao usuário
+- `parseAgenda0051(file)` deriva automaticamente:
+  - **Lista de recuperação**: clientes com visita passada que **não têm agendamento futuro**
+  - **Modelos**: serviço contém `/modelo/i`
+  - **Alerta de cancelamento**: faltou/cancelou após a última visita (`alertaCancelamento`)
+  - Clientes com agendamento futuro (até fim do próximo mês) são excluídas
+- `getCol(row, ...names)`: lookup case-insensitive + multi-nome para colunas do AVEC (resolve variações de header)
+- Sub-abas: Todos / Clientes / Modelos
+- Filtro secundário: Todas / Não contatada / Contatada
+- Painel de números: Para recuperar / Modelos / Não contatadas
+- Gerador de XLSX para mensagens: filtra por mínimo de dias, gera arquivo com colunas `cliente, celular, status`
+- Coleção Firestore: `recuperacao_status` | doc info: `configuracoes/agenda_0051_upload`
 
-### sicoob-parser — formato do PDF
-- 3 colunas: DATA | HISTÓRICO | VALOR
-- Data: `DD/MM` no início da linha, seguida de `\s+`
-- Valor: `\s+([\d.]+,\d{2}[CD])` no final (`C` = crédito, `D` = débito)
-- Linhas sem data = continuação da descrição da transação anterior
-- Ignoradas: SALDO ANTERIOR, SALDO BLOQ, SALDO DO DIA, etc.
-- `LancamentoParsed`: `{ data, descricao, descricaoOriginal, valor, tipo, cnpj?, nomeEmpresa? }`
+## Módulo Mensagens
+- Sub-módulos: Lote (`MensagensLote.tsx`) e Individual
+- `lerXlsx()`: lê arquivo AVEC ou arquivo de recuperação; detecta header por 'cliente'/'hora'
+  - Fallback de colunas: cliente/nome, celular/telefone/fone, serviço/servico/servi, etc.
+- `filtrarEDeduplicar()`: filtra por status + deduplicação por celular ou nome
+- `normStatus(s)`: normaliza status sem acento (evita mismatch 'Recuperação' vs 'Recuperacao')
+- `STATUS_OPCOES`: inclui `'Recuperacao'` para arquivos gerados pelo CRM
+- Templates salvos no Firestore (`mensagem_templates`), variáveis: `{nome}`, `{data}`, `{hora}`, `{servicos}`, `{profissional}`, `{studio}`
+- Envio semi-automático: abre WhatsApp Web numa aba compartilhada, usuário confirma cada envio
+- Histórico salvo em `mensagens_enviadas`
 
-## Módulo 1 — Dashboard (detalhes)
-- Janela: seg semana passada → dom semana atual (14 dias)
-- Prioridades por semana: salvas em `configuracoes/planejamento_semana` com `semanaKey` (segunda-feira ISO)
-- Gap = saldoPJ − soma dos priorizados pendentes
-- Saldo PJ editável inline, salvo em `configuracoes/saldo`
+## Módulo Tarefas
+- Campos: título, descrição, responsável (gabriela/gustavo/equipe), categoria, prioridade, dataEntrega, recorrência, subtarefas
+- Recorrências: única, diária, semanal, quinzenal, mensal
+- Histórico de conclusões em `historico_conclusoes[]`
 
-## Módulo 3 — Contas a Pagar (detalhes)
-- Recorrência: mensal, semanal, única, anual (anual pede mês)
-- Natureza: fixo / variável
-- `mesInicio/anoInicio`: "cobrar a partir de"
-- Pagamentos retroativos: `HistoricoPagamento.mesRef/anoRef` identifica o mês coberto
-- Aba "Atrasados": acumulado de todos os meses não pagos desde `mesInicio`
+## Módulo DRE — Wizard 3 etapas
+1. **Informações** — mês/ano + faturamento AVEC (Pix, Débito, Crédito, Dinheiro)
+2. **Extrato** — seleciona extrato salvo
+3. **DRE** — grupos por `tipo1`, KPIs, gap AVEC vs extrato, exportação Excel
 
-## next.config.ts
-```ts
-serverExternalPackages: ['pdf-parse', 'pdfjs-dist', 'firebase-admin']
-```
+## Extrato Bancário (Sicoob)
+- Upload PDF → POST `/api/extrato` → `parseSicoob` → enriquecimento CNPJ (BrasilAPI) → JSON
+- Cache CNPJ em `cnpj_cache/{digits}`
 
 ## proxy.ts (era middleware.ts)
 - Next.js 16 renomeou `middleware.ts` → `proxy.ts` com export `proxy()` em vez de `middleware()`
 - Protege rotas autenticadas via cookie `firebase-token`
 
-## Vercel — variáveis de ambiente necessárias
+## Vercel — variáveis de ambiente
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
@@ -136,37 +181,18 @@ NEXT_PUBLIC_FIREBASE_APP_ID
 FIREBASE_SERVICE_ACCOUNT   ← JSON completo do service-account.json (uma linha)
 ```
 
-## Módulo 4 — DRE Mensal (detalhes)
-
-### Fluxo (wizard 3 etapas)
-1. **Informações** — mês/ano + faturamento AVEC por forma de pagamento (Pix, Débito, Crédito, Dinheiro)
-2. **Extrato** — seleciona extrato salvo no Firestore (lista cards)
-3. **DRE** — agrupa transações por `tipo1`, mostra DRE + KPIs + gap AVEC vs extrato
-
-### Coleções Firestore
-- `dre_config/{ano}-{mes}` — `DreConfig`: extratoId + valores AVEC + metadados
-
-### DRE — grupos e cálculo
-- Todos os valores vêm do extrato (sem cálculo externo)
-- Ordem: Receita Bruta → (-) Descontos da Receita → = Receita Líquida → (-) Despesas Fixas → (-) Despesas Variáveis → = Resultado Operacional → Investimento/Resgate
-- `tipo1` valores: `'Receita'`, `'Descontos da Receita'`, `'Despesas Fixas'`, `'Despesas variáveis'`, `'Investimento/Resgate'`
-
-### Exportação Excel
-- Client-side com `xlsx` (dynamic import)
-- Pré-visualização em modal antes de exportar
-
 ## Parâmetros financeiros fixos
 - Ponto de equilíbrio: R$ 30.352
 - Meta operacional: R$ 40.000
-- Pró-labore total: R$ 5.500 (Gustavo R$4.500 + Gabriela R$1.000, dia 5)
+- Pró-labore total: R$ 5.500 (Gustavo R$ 4.500 + Gabriela R$ 1.000, dia 5)
 - Custos variáveis: 45,5% do faturamento (comissões 30% + royalties 7,5% + fundo mkt 2% + Simples 6%)
 - Custo fixo mensal base: R$ 11.343
 
 ## Regras de negócio críticas
-- Royalties vêm de 3 origens: Larissa Taborda (CPF), PJBank (CNPJ 18.191.228), Estética Beleza e Mulher (CNPJ 30.332.652)
-- Aluguel R$4.097,61 = base + seguro + IPTU + coleta — tudo categoria Aluguel
-- Pró-labore (Gustavo/Gabriela da conta PJ) não é despesa operacional
+- Royalties: Larissa Taborda (CPF), PJBank (CNPJ 18.191.228), Estética Beleza e Mulher (CNPJ 30.332.652)
+- Aluguel R$ 4.097,61 = base + seguro + IPTU + coleta — categoria Aluguel
+- Pró-labore não é despesa operacional no DRE
 - Comissões calculadas sobre faturamento AVEC, não sobre extrato
 - Simples Nacional calculado apenas sobre faturamento declarado (cartão)
-- Dinheiro físico ~R$3.014/mês aparece no AVEC mas pode não aparecer no extrato — alertar gap
-- Trocos via Pix para clientes (média R$38) → categoria Receita/despesa / Devolução
+- Dinheiro físico ~R$ 3.014/mês aparece no AVEC mas pode não aparecer no extrato — alertar gap
+- Trocos via Pix para clientes (média R$ 38) → categoria Receita/Devolução
