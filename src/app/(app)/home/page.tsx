@@ -55,8 +55,14 @@ export default function HomePage() {
   const hora = hoje.getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
 
-  // Tarefas pendentes
-  const tarefasPendentes = tarefas.filter(t => !t.concluida).slice(0, 5)
+  // Tarefas pendentes de hoje
+  const tarefasPendentes = tarefas.filter(t => {
+    if (t.concluida) return false
+    const entrega = t.dataEntrega.toDate()
+    return entrega.getFullYear() === hoje.getFullYear() &&
+      entrega.getMonth() === hoje.getMonth() &&
+      entrega.getDate() === hoje.getDate()
+  })
 
   // Top 3 profissionais por valor a pagar
   const top3Comissoes = comissoesAtual
@@ -145,7 +151,7 @@ export default function HomePage() {
             {loadingTarefas ? (
               <p className="text-xs text-gray-400">Carregando...</p>
             ) : tarefasPendentes.length === 0 ? (
-              <p className="text-xs text-gray-400 flex-1 flex items-center">Nenhuma tarefa pendente.</p>
+              <p className="text-xs text-gray-400 flex-1 flex items-center">Sem tarefas para hoje — ou todas foram concluídas 🎉</p>
             ) : (
               <ul className="space-y-2 flex-1">
                 {tarefasPendentes.map(t => {
@@ -169,11 +175,6 @@ export default function HomePage() {
               </ul>
             )}
 
-            {!loadingTarefas && tarefas.filter(t => !t.concluida).length > 5 && (
-              <p className="text-xs text-gray-400 mt-3">
-                +{tarefas.filter(t => !t.concluida).length - 5} outras
-              </p>
-            )}
           </div>
 
           {/* ── Comissões ── */}

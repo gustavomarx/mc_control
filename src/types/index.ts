@@ -280,6 +280,7 @@ export interface AgendaAvec {
   totalAtivos: number
   totalCancelados: number
   totalFaltas: number
+  clientesUnicas: number
   clientesNovas: number
   porDia: Record<string, AgendaDia>
   porProfissional: Record<string, Record<string, number>>

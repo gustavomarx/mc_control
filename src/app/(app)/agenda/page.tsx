@@ -25,11 +25,11 @@ function corProgresso(ativos: number, meta: number): string {
   return 'bg-red-500'
 }
 
-function fraseContextual(ativos: number, meta: number): { texto: string; cor: string } {
-  const falta = meta - ativos
-  if (ativos >= meta) return { texto: 'Semana no caminho certo 💚', cor: 'text-emerald-600' }
-  if (ativos / meta >= 0.7) return { texto: `Atenção: ${falta} agendamento${falta > 1 ? 's' : ''} abaixo da meta — considere acionar lista de espera`, cor: 'text-yellow-600' }
-  return { texto: `Semana crítica: ${falta} agendamento${falta > 1 ? 's' : ''} abaixo da meta — ação imediata necessária`, cor: 'text-red-600' }
+function fraseContextual(unicas: number, meta: number): { texto: string; cor: string } {
+  const falta = meta - unicas
+  if (unicas >= meta) return { texto: 'Semana no caminho certo 💚', cor: 'text-emerald-600' }
+  if (unicas / meta >= 0.7) return { texto: `Atenção: ${falta} cliente${falta > 1 ? 's' : ''} abaixo da meta — considere acionar lista de espera`, cor: 'text-yellow-600' }
+  return { texto: `Semana crítica: ${falta} cliente${falta > 1 ? 's' : ''} abaixo da meta — ação imediata necessária`, cor: 'text-red-600' }
 }
 
 function diasDaSemana(semanaKey: string): string[] {
@@ -67,9 +67,10 @@ function PainelAgenda({ agenda, meta }: PainelAgendaProps) {
   const [expandirServicos, setExpandirServicos] = useState(false)
   const dias = diasDaSemana(agenda.semanaKey)
   const mediaDia = meta / 6
-  const pct = meta > 0 ? Math.min((agenda.totalAtivos / meta) * 100, 100) : 0
-  const cor = corProgresso(agenda.totalAtivos, meta)
-  const frase = fraseContextual(agenda.totalAtivos, meta)
+  const clientesUnicas = agenda.clientesUnicas ?? agenda.totalAtivos
+  const pct = meta > 0 ? Math.min((clientesUnicas / meta) * 100, 100) : 0
+  const cor = corProgresso(clientesUnicas, meta)
+  const frase = fraseContextual(clientesUnicas, meta)
   const taxaCancelamento = agenda.totalAtivos + agenda.totalCancelados > 0
     ? ((agenda.totalCancelados / (agenda.totalAtivos + agenda.totalCancelados)) * 100).toFixed(1)
     : '0'
@@ -81,9 +82,12 @@ function PainelAgenda({ agenda, meta }: PainelAgendaProps) {
       {/* Barra de progresso */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">
-            {agenda.totalAtivos} de {meta} agendamentos ativos
-          </span>
+          <div>
+            <span className="text-sm font-medium text-gray-700">
+              {clientesUnicas} de {meta} clientes únicas
+            </span>
+            <span className="text-xs text-gray-400 ml-2">({agenda.totalAtivos} agendamentos)</span>
+          </div>
           <span className="text-sm font-semibold text-gray-900">{pct.toFixed(0)}%</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-3 mb-3">
@@ -337,10 +341,10 @@ export default function AgendaPage() {
               onClick={() => { setMetaInput(String(metaSemanal)); setMetaEditando(true) }}
               className="text-sm font-semibold text-gray-900 hover:text-emerald-600 underline underline-offset-2 decoration-dashed transition-colors"
             >
-              {metaSemanal} agendamentos
+              {metaSemanal} clientes únicas
             </button>
           )}
-          <Tooltip texto="Define quantos atendimentos ativos você espera na semana. Inclui: Agendado, Confirmado, Aguardando, Em Atendimento, Pago e Finalizado." />
+          <Tooltip texto="Define quantas clientes únicas você espera na semana. Uma cliente com múltiplos serviços conta como 1. Considera status: Agendado, Confirmado, Aguardando, Em Atendimento, Pago e Finalizado." />
         </div>
 
         {/* Painel principal ou estado vazio */}

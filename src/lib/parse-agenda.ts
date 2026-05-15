@@ -67,6 +67,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
   let totalCancelados = 0
   let totalFaltas = 0
   let clientesNovas = 0
+  const clientesUnicasSet = new Set<string>()
 
   for (const row of rows) {
     const dataReservaStr = String(row['Data Reserva'] ?? row['Data_Reserva'] ?? '')
@@ -113,6 +114,8 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
       if (status === 'Aguardando') porDia[dataKey].aguardando++
       if (status === 'Agendado') porDia[dataKey].agendados++
       if (nova) clientesNovas++
+      const nomeCliente = agendamento.cliente.toLowerCase().trim()
+      if (nomeCliente) clientesUnicasSet.add(nomeCliente)
 
       const cat = classificarServico(servico)
       porServico[cat]++
@@ -131,6 +134,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec> {
     totalAtivos,
     totalCancelados,
     totalFaltas,
+    clientesUnicas: clientesUnicasSet.size,
     clientesNovas,
     porDia,
     porProfissional,
