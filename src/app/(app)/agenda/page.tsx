@@ -14,7 +14,10 @@ function formatarMoeda(v: number) {
 
 function semanaLabel(key: string): string {
   const [ano, mes, dia] = key.split('-').map(Number)
-  return `Semana de ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`
+  const seg = new Date(ano, mes - 1, dia)
+  const sab = new Date(ano, mes - 1, dia + 5)
+  const fmt = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+  return `Semana de ${fmt(seg)} a ${fmt(sab)}`
 }
 
 function corProgresso(ativos: number, meta: number): string {
