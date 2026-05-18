@@ -6,7 +6,7 @@ import CardTarefa from '@/components/tarefas/CardTarefa'
 import ModalTarefa from '@/components/tarefas/ModalTarefa'
 import type { Tarefa } from '@/types'
 
-type Filtro = 'todos' | 'gabriela' | 'gustavo' | 'equipe' | 'atrasadas' | 'recorrentes'
+type Filtro = 'todos' | 'gabriela' | 'gustavo' | 'equipe' | 'atrasadas' | 'hoje' | 'recorrentes'
 
 function getSegundaFeira(d: Date): Date {
   const dia = new Date(d)
@@ -58,7 +58,7 @@ function fimSemana(offset = 0): Date {
 
 export default function TarefasPage() {
   const { tarefas, loading, adicionar, atualizar, excluir, concluir, reabrirTarefa } = useTarefas()
-  const [filtro, setFiltro] = useState<Filtro>('todos')
+  const [filtro, setFiltro] = useState<Filtro>('hoje')
   const [modalAberto, setModalAberto] = useState(false)
   const [tarefaEditando, setTarefaEditando] = useState<Tarefa | null>(null)
 
@@ -71,6 +71,14 @@ export default function TarefasPage() {
     if (filtro === 'gustavo') return tarefas.filter(t => t.responsavel === 'gustavo')
     if (filtro === 'equipe') return tarefas.filter(t => t.responsavel === 'equipe')
     if (filtro === 'atrasadas') return tarefas.filter(t => !t.concluida && t.dataEntrega.toDate() < hoje)
+    if (filtro === 'hoje') {
+      return tarefas.filter(t => {
+        if (t.concluida) return false
+        const d = t.dataEntrega.toDate()
+        d.setHours(0, 0, 0, 0)
+        return d <= hoje
+      })
+    }
     if (filtro === 'recorrentes') return tarefas.filter(t => t.recorrencia !== 'unica')
     return tarefas
   }, [tarefas, filtro, hoje])
@@ -202,6 +210,7 @@ export default function TarefasPage() {
             { v: 'gabriela',    label: 'Gabriela' },
             { v: 'gustavo',     label: 'Gustavo' },
             { v: 'equipe',      label: 'Equipe' },
+            { v: 'hoje',        label: 'Hoje & Atrasadas' },
             { v: 'atrasadas',   label: 'Atrasadas' },
             { v: 'recorrentes', label: 'Recorrentes' },
           ] as const).map(({ v, label }) => (

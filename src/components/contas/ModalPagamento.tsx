@@ -14,20 +14,23 @@ interface Props {
   defaultMes?: number
   defaultAno?: number
   faturamentoMes?: number
+  valorRestante?: number
   onConfirmar: (valorPago: number, mesRef: number, anoRef: number) => Promise<void>
   onFechar: () => void
 }
 
-export default function ModalPagamento({ conta, defaultMes, defaultAno, faturamentoMes, onConfirmar, onFechar }: Props) {
+export default function ModalPagamento({ conta, defaultMes, defaultAno, faturamentoMes, valorRestante, onConfirmar, onFechar }: Props) {
   const { mes: mesHoje, ano: anoHoje } = mesAtual()
   const [mesRef, setMesRef] = useState(defaultMes ?? mesHoje)
   const [anoRef, setAnoRef] = useState(defaultAno ?? anoHoje)
 
-  const valorSugerido = conta.valor
-    ? conta.valor
-    : conta.percentual && faturamentoMes
-      ? (conta.percentual / 100) * faturamentoMes
-      : 0
+  const valorSugerido = valorRestante !== undefined
+    ? valorRestante
+    : conta.valor
+      ? conta.valor
+      : conta.percentual && faturamentoMes
+        ? (conta.percentual / 100) * faturamentoMes
+        : 0
 
   const [valorPago, setValorPago] = useState(valorSugerido.toFixed(2))
   const [confirmando, setConfirmando] = useState(false)
@@ -93,7 +96,12 @@ export default function ModalPagamento({ conta, defaultMes, defaultAno, faturame
               value={valorPago}
               onChange={e => setValorPago(e.target.value)}
             />
-            {valorSugerido > 0 && (
+            {valorRestante !== undefined && conta.valor && (
+              <p className="text-xs text-amber-600 mt-1">
+                Pagamento parcial — já pago: {formatBRL(conta.valor - valorRestante)} · restante: {formatBRL(valorRestante)}
+              </p>
+            )}
+            {valorRestante === undefined && valorSugerido > 0 && (
               <p className="text-xs text-gray-400 mt-1">
                 Sugerido: {formatBRL(valorSugerido)}
                 {conta.percentual ? ` (${conta.percentual}% do faturamento)` : ''}

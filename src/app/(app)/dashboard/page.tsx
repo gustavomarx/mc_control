@@ -229,8 +229,8 @@ export default function DashboardPage() {
   )
 }
 
-function StatusBadge({ status }: { status: 'pago' | 'atrasado' | 'pendente' }) {
-  const map = { pago: 'bg-emerald-100 text-emerald-700', atrasado: 'bg-red-100 text-red-700', pendente: 'bg-amber-100 text-amber-700' }
-  const label = { pago: 'Pago', atrasado: 'Atrasado', pendente: 'Pendente' }
+function StatusBadge({ status }: { status: 'pago' | 'parcial' | 'atrasado' | 'pendente' }) {
+  const map = { pago: 'bg-emerald-100 text-emerald-700', parcial: 'bg-orange-100 text-orange-700', atrasado: 'bg-red-100 text-red-700', pendente: 'bg-amber-100 text-amber-700' }
+  const label = { pago: 'Pago', parcial: 'Parcial', atrasado: 'Atrasado', pendente: 'Pendente' }
   return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${map[status]}`}>{label[status]}</span>
 }

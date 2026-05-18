@@ -7,7 +7,7 @@ import ModalConta from '@/components/contas/ModalConta'
 import ModalPagamento from '@/components/contas/ModalPagamento'
 import {
   formatBRL, formatDate, statusPagamento, ultimoPagamento,
-  projecao30Dias, mesAtual, contaAparece, gerarAtrasados,
+  projecao30Dias, mesAtual, contaAparece, gerarAtrasados, totalPagoPorMes,
 } from '@/lib/utils'
 import type { ContaPagar, TipoContaPagar } from '@/types'
 
@@ -33,7 +33,7 @@ export default function ContasPage() {
   const [busca, setBusca] = useState('')
   const [modalNova, setModalNova] = useState(false)
   const [editando, setEditando] = useState<ContaPagar | null>(null)
-  const [pagando, setPagando] = useState<{ conta: ContaPagar; mes: number; ano: number } | null>(null)
+  const [pagando, setPagando] = useState<{ conta: ContaPagar; mes: number; ano: number; valorRestante?: number } | null>(null)
 
   function navMes(delta: number) {
     let m = mesVis + delta
@@ -52,7 +52,10 @@ export default function ContasPage() {
   const contasFiltradas = useMemo(() => {
     return contasDoMes.filter(c => {
       const status = statusPagamento(c, mesVis, anoVis)
-      if (filtro !== 'todos' && status !== filtro) return false
+      if (filtro !== 'todos') {
+        if (filtro === 'pendente' && status !== 'pendente' && status !== 'parcial') return false
+        if (filtro !== 'pendente' && status !== filtro) return false
+      }
       if (filtroTipo !== 'todos' && (c.tipo ?? 'fixo') !== filtroTipo) return false
       if (busca && !c.nome.toLowerCase().includes(busca.toLowerCase()) &&
           !c.fornecedor.toLowerCase().includes(busca.toLowerCase())) return false
@@ -263,6 +266,9 @@ export default function ContasPage() {
                       ? `${conta.percentual}% fat.`
                       : '—'
 
+                  const totalPago = totalPagoPorMes(conta, mesVis, anoVis)
+                  const restante = conta.valor ? Math.max(0, conta.valor - totalPago) : undefined
+
                   return (
                     <tr key={conta.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
@@ -282,12 +288,17 @@ export default function ContasPage() {
                             {formatBRL(ultimo.valorPago)} em {formatDate(ultimo.pagoEm)}
                           </p>
                         )}
+                        {status === 'parcial' && restante !== undefined && (
+                          <p className="text-xs text-amber-600 mt-0.5">
+                            pago {formatBRL(totalPago)} · falta {formatBRL(restante)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
                           {status !== 'pago' && (
                             <button
-                              onClick={() => setPagando({ conta, mes: mesVis, ano: anoVis })}
+                              onClick={() => setPagando({ conta, mes: mesVis, ano: anoVis, valorRestante: status === 'parcial' ? restante : undefined })}
                               className="text-xs text-emerald-700 hover:text-emerald-800 font-medium"
                             >
                               Pagar
@@ -426,6 +437,7 @@ export default function ContasPage() {
           conta={pagando.conta}
           defaultMes={pagando.mes}
           defaultAno={pagando.ano}
+          valorRestante={pagando.valorRestante}
           onConfirmar={(v, m, a) => handlePagar(pagando.conta, v, m, a)}
           onFechar={() => setPagando(null)}
         />
@@ -434,13 +446,14 @@ export default function ContasPage() {
   )
 }
 
-function StatusBadge({ status }: { status: 'pago' | 'atrasado' | 'pendente' }) {
+function StatusBadge({ status }: { status: 'pago' | 'parcial' | 'atrasado' | 'pendente' }) {
   const map = {
     pago: 'bg-emerald-100 text-emerald-700',
+    parcial: 'bg-orange-100 text-orange-700',
     atrasado: 'bg-red-100 text-red-700',
     pendente: 'bg-amber-100 text-amber-700',
   }
-  const label = { pago: 'Pago', atrasado: 'Atrasado', pendente: 'Pendente' }
+  const label = { pago: 'Pago', parcial: 'Parcial', atrasado: 'Atrasado', pendente: 'Pendente' }
   return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${map[status]}`}>{label[status]}</span>
 }
 

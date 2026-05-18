@@ -28,21 +28,29 @@ export function contaAparece(conta: ContaPagar, mes: number, ano: number): boole
   return true // mensal, semanal, unica aparecem sempre
 }
 
+// Soma dos pagamentos de uma conta num mês/ano específico
+export function totalPagoPorMes(conta: ContaPagar, mes: number, ano: number): number {
+  return (conta.historicoPagamentos ?? [])
+    .filter(h => {
+      if (h.mesRef !== undefined && h.anoRef !== undefined) return h.mesRef === mes && h.anoRef === ano
+      const d = h.pagoEm instanceof Timestamp ? h.pagoEm.toDate() : new Date(h.pagoEm as unknown as string)
+      return d.getMonth() + 1 === mes && d.getFullYear() === ano
+    })
+    .reduce((s, h) => s + h.valorPago, 0)
+}
+
 // Status de pagamento de uma conta num mês/ano específico
-export function statusPagamento(conta: ContaPagar, mes?: number, ano?: number): 'pago' | 'atrasado' | 'pendente' {
+export function statusPagamento(conta: ContaPagar, mes?: number, ano?: number): 'pago' | 'parcial' | 'atrasado' | 'pendente' {
   const { mes: mesC, ano: anoC } = mesAtual()
   const m = mes ?? mesC
   const a = ano ?? anoC
 
-  const pago = (conta.historicoPagamentos ?? []).some(h => {
-    // Registros novos têm mesRef/anoRef; legado usa data de pagoEm
-    if (h.mesRef !== undefined && h.anoRef !== undefined) {
-      return h.mesRef === m && h.anoRef === a
-    }
-    const d = h.pagoEm instanceof Timestamp ? h.pagoEm.toDate() : new Date(h.pagoEm as unknown as string)
-    return d.getMonth() + 1 === m && d.getFullYear() === a
-  })
-  if (pago) return 'pago'
+  const totalPago = totalPagoPorMes(conta, m, a)
+
+  if (totalPago > 0) {
+    if (conta.valor && totalPago < conta.valor) return 'parcial'
+    return 'pago'
+  }
 
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
   const isMesAtual = m === mesC && a === anoC
