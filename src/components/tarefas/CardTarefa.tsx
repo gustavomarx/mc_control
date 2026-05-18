@@ -30,7 +30,11 @@ function formatarData(ts: import('firebase/firestore').Timestamp): string {
 
 function isAtrasada(tarefa: Tarefa): boolean {
   if (tarefa.concluida) return false
-  return tarefa.dataEntrega.toDate() < new Date()
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const entrega = tarefa.dataEntrega.toDate()
+  entrega.setHours(0, 0, 0, 0)
+  return entrega < hoje
 }
 
 interface Props {
