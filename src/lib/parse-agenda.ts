@@ -68,6 +68,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
     agendamentos: AgendamentoAvec[]
     porDia: Record<string, AgendaDia>
     porProfissional: Record<string, Record<string, number>>
+    porProfissionalClientes: Record<string, Record<string, Set<string>>>
     porServico: { cilios: number; unhas: number; agregados: number; outros: number }
     totalAtivos: number
     totalCancelados: number
@@ -89,6 +90,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
         agendamentos: [],
         porDia: {},
         porProfissional: {},
+        porProfissionalClientes: {},
         porServico: { cilios: 0, unhas: 0, agregados: 0, outros: 0 },
         totalAtivos: 0,
         totalCancelados: 0,
@@ -145,8 +147,10 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
       s.porServico[cat]++
 
       if (profissional) {
-        if (!s.porProfissional[profissional]) s.porProfissional[profissional] = {}
-        s.porProfissional[profissional][dataKey] = (s.porProfissional[profissional][dataKey] ?? 0) + 1
+        if (!s.porProfissionalClientes[profissional]) s.porProfissionalClientes[profissional] = {}
+        if (!s.porProfissionalClientes[profissional][dataKey]) s.porProfissionalClientes[profissional][dataKey] = new Set()
+        const nomeCliente = agendamento.cliente.toLowerCase().trim()
+        if (nomeCliente) s.porProfissionalClientes[profissional][dataKey].add(nomeCliente)
       }
     }
   }
@@ -162,7 +166,12 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
     clientesUnicas: s.clientesUnicasSet.size,
     clientesNovas: s.clientesNovas,
     porDia: s.porDia,
-    porProfissional: s.porProfissional,
+    porProfissional: Object.fromEntries(
+      Object.entries(s.porProfissionalClientes).map(([prof, dias]) => [
+        prof,
+        Object.fromEntries(Object.entries(dias).map(([dia, set]) => [dia, set.size])),
+      ])
+    ),
     porServico: s.porServico,
     agendamentos: s.agendamentos,
   }))
