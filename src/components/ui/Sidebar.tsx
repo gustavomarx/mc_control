@@ -31,7 +31,11 @@ const NAV_ATENDENTE = [
   { href: '/crm', label: 'CRM' },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void
+}
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const { usuario, perfil, logout } = useAuth()
 
@@ -40,9 +44,10 @@ export default function Sidebar() {
     return (
       <Link
         href={href}
+        onClick={onClose}
         style={{
           display: 'block',
-          padding: '9px 16px',
+          padding: '10px 16px',
           borderRadius: 8,
           fontSize: 13,
           fontWeight: active ? 600 : 500,
@@ -91,7 +96,7 @@ export default function Sidebar() {
 
   const sidebarStyle: React.CSSProperties = {
     width: 220,
-    flexShrink: 0,
+    height: '100%',
     background: 'linear-gradient(180deg, #4A1228 0%, #3a0d1e 100%)',
     borderRight: '1px solid rgba(139,47,80,.4)',
     display: 'flex',
@@ -102,7 +107,7 @@ export default function Sidebar() {
   if (perfil === 'atendente') {
     return (
       <aside style={sidebarStyle}>
-        <SidebarLogo />
+        <SidebarLogo onClose={onClose} />
         <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {NAV_ATENDENTE.map(item => <NavLink key={item.href} {...item} />)}
@@ -115,7 +120,7 @@ export default function Sidebar() {
 
   return (
     <aside style={sidebarStyle}>
-      <SidebarLogo />
+      <SidebarLogo onClose={onClose} />
       <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
           {NAV_TOPO.map(item => <NavLink key={item.href} {...item} />)}
@@ -138,51 +143,65 @@ export default function Sidebar() {
   )
 }
 
-function SidebarLogo() {
+function SidebarLogo({ onClose }: { onClose?: () => void }) {
   return (
     <div style={{
       padding: '20px 16px 16px',
       borderBottom: '1px solid rgba(139,47,80,.4)',
       display: 'flex',
       alignItems: 'center',
-      gap: 10,
+      justifyContent: 'space-between',
     }}>
-      <div style={{
-        width: 34, height: 34,
-        background: 'linear-gradient(135deg, #C9956B, #b87f56)',
-        borderRadius: 9,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', flexShrink: 0,
-        boxShadow: '0 2px 8px rgba(201,149,107,.35)',
-      }}>
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-        </svg>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-        <span style={{
-          fontFamily: "'Cormorant Garamond', Georgia, serif",
-          fontSize: 15,
-          fontWeight: 600,
-          color: '#fff',
-          letterSpacing: '.01em',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 34, height: 34,
+          background: 'linear-gradient(135deg, #C9956B, #b87f56)',
+          borderRadius: 9,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', flexShrink: 0,
+          boxShadow: '0 2px 8px rgba(201,149,107,.35)',
         }}>
-          Studio Meus Cílios
-        </span>
-        <span style={{
-          fontFamily: "'Jost', sans-serif",
-          fontSize: 10,
-          fontWeight: 400,
-          color: '#E8C4A8',
-          letterSpacing: '.1em',
-          textTransform: 'uppercase',
-        }}>
-          ✦ Gestão
-        </span>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+          </svg>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
+          <span style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontSize: 15, fontWeight: 600, color: '#fff',
+            letterSpacing: '.01em', whiteSpace: 'nowrap',
+            overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            Studio Meus Cílios
+          </span>
+          <span style={{
+            fontFamily: "'Jost', sans-serif",
+            fontSize: 10, fontWeight: 400, color: '#E8C4A8',
+            letterSpacing: '.1em', textTransform: 'uppercase',
+          }}>
+            ✦ Gestão
+          </span>
+        </div>
       </div>
+
+      {/* Botão fechar — só aparece no mobile */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="lg:hidden"
+          style={{
+            background: 'none', border: 'none',
+            padding: 6, cursor: 'pointer',
+            color: 'rgba(232,196,168,.6)',
+            display: 'flex', alignItems: 'center',
+          }}
+          aria-label="Fechar menu"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      )}
     </div>
   )
 }
@@ -199,13 +218,10 @@ function SidebarFooter({ nome, onLogout, isAdmin, pathname }: {
         <Link
           href="/admin/usuarios"
           style={{
-            fontSize: 12,
-            fontWeight: 500,
+            fontSize: 12, fontWeight: 500,
             fontFamily: "'Jost', sans-serif",
             color: pathname.startsWith('/admin/usuarios') ? '#C9956B' : 'rgba(232,196,168,.5)',
-            textDecoration: 'none',
-            letterSpacing: '.04em',
-            transition: 'color .15s',
+            textDecoration: 'none', letterSpacing: '.04em', transition: 'color .15s',
           }}
         >
           Usuários
@@ -220,15 +236,10 @@ function SidebarFooter({ nome, onLogout, isAdmin, pathname }: {
         <button
           onClick={onLogout}
           style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            fontSize: 12,
-            color: 'rgba(232,196,168,.5)',
-            fontFamily: "'Jost', sans-serif",
-            letterSpacing: '.03em',
-            transition: 'color .15s',
+            background: 'none', border: 'none', padding: 0,
+            cursor: 'pointer', fontSize: 12,
+            color: 'rgba(232,196,168,.5)', fontFamily: "'Jost', sans-serif",
+            letterSpacing: '.03em', transition: 'color .15s',
           }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#E8C4A8' }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(232,196,168,.5)' }}

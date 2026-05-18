@@ -93,21 +93,21 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50">
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-5 lg:px-6 lg:py-8">
 
         {/* Cabeçalho */}
-        <div className="mb-7">
-          <h1 className="text-2xl font-bold text-gray-900">{saudacao} 👋</h1>
+        <div className="mb-5 lg:mb-7">
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">{saudacao} 👋</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
         </div>
 
-        {/* Grade principal: 3 colunas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Grade principal: 1 col mobile / 3 col desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
 
           {/* ── Financeiro (2 colunas) ── */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-4 lg:p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-semibold text-gray-900">Financeiro</p>
               <Link href="/dashboard" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Ver →</Link>
@@ -142,7 +142,7 @@ export default function HomePage() {
           </div>
 
           {/* ── Tarefas ── */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 lg:p-5 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-semibold text-gray-900">Tarefas pendentes</p>
               <Link href="/tarefas" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Ver →</Link>
