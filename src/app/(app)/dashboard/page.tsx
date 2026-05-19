@@ -58,19 +58,19 @@ export default function DashboardPage() {
   const gapPositivo = gap >= 0
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="mb-6">
+    <div className="max-w-5xl mx-auto p-4 lg:p-8">
+      <div className="mb-5 lg:mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-0.5">{MESES_NOMES[mes - 1]} {ano}</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-2">Saldo PJ</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-5 lg:mb-6">
+        <div className="card !p-3 lg:!p-6">
+          <p className="text-xs text-gray-500 mb-1.5">Saldo PJ</p>
           {editandoSaldo ? (
             <input
               ref={saldoRef}
-              className="w-full text-xl font-bold text-gray-900 border-b-2 border-emerald-500 outline-none bg-transparent pb-0.5"
+              className="w-full text-base lg:text-xl font-bold text-gray-900 border-b-2 border-emerald-500 outline-none bg-transparent pb-0.5"
               value={saldoInput}
               onChange={e => setSaldoInput(e.target.value)}
               onBlur={confirmarSaldo}
@@ -81,38 +81,38 @@ export default function DashboardPage() {
           ) : (
             <button
               onClick={iniciarEdicaoSaldo}
-              className="text-xl font-bold text-gray-900 hover:text-emerald-700 transition-colors text-left w-full"
+              className="text-base lg:text-xl font-bold text-gray-900 hover:text-emerald-700 transition-colors text-left w-full truncate"
               title="Clique para editar"
             >
               {formatBRL(saldoPJ)}
             </button>
           )}
-          <p className="text-xs text-gray-400 mt-1">Clique para atualizar</p>
+          <p className="text-xs text-gray-400 mt-1 hidden lg:block">Clique para atualizar</p>
         </div>
 
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-2">A pagar (priorizados)</p>
-          <p className="text-xl font-semibold text-amber-600">{formatBRL(totaisJanela.priorizado)}</p>
+        <div className="card !p-3 lg:!p-6">
+          <p className="text-xs text-gray-500 mb-1.5">A pagar</p>
+          <p className="text-base lg:text-xl font-semibold text-amber-600 truncate">{formatBRL(totaisJanela.priorizado)}</p>
           <p className="text-xs text-gray-400 mt-1">
-            {totaisJanela.qPriorizado} priorizad{totaisJanela.qPriorizado !== 1 ? 'os' : 'o'} de {totaisJanela.qPendente} pendentes
+            {totaisJanela.qPriorizado}/{totaisJanela.qPendente} priorizados
           </p>
         </div>
 
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-2">Gap saldo − priorizados</p>
-          <p className={`text-xl font-bold ${gapPositivo ? 'text-emerald-600' : 'text-red-600'}`}>
+        <div className="card !p-3 lg:!p-6">
+          <p className="text-xs text-gray-500 mb-1.5">Gap saldo</p>
+          <p className={`text-base lg:text-xl font-bold truncate ${gapPositivo ? 'text-emerald-600' : 'text-red-600'}`}>
             {gapPositivo ? '+' : ''}{formatBRL(gap)}
           </p>
           <p className={`text-xs mt-1 ${gapPositivo ? 'text-emerald-500' : 'text-red-400'}`}>
-            {gapPositivo ? 'Saldo suficiente' : 'Saldo insuficiente'}
+            {gapPositivo ? 'Suficiente' : 'Insuficiente'}
           </p>
         </div>
 
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-2">Custo fixo / mês</p>
-          <p className="text-xl font-semibold text-gray-900">{formatBRL(totaisMes.custoFixo)}</p>
+        <div className="card !p-3 lg:!p-6">
+          <p className="text-xs text-gray-500 mb-1.5">Custo fixo / mês</p>
+          <p className="text-base lg:text-xl font-semibold text-gray-900 truncate">{formatBRL(totaisMes.custoFixo)}</p>
           {config && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1 hidden lg:block">
               PE {formatBRL(config.pontoEquilibrio)} · Meta {formatBRL(config.metaOperacional)}
             </p>
           )}
@@ -135,7 +135,8 @@ export default function DashboardPage() {
         {janela.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-gray-400">Nenhuma conta neste período.</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: 560 }}>
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="px-4 py-3 w-8" title="Prioridade" />
@@ -211,6 +212,7 @@ export default function DashboardPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

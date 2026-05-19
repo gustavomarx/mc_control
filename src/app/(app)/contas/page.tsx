@@ -94,14 +94,14 @@ export default function ContasPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
+    <div className="max-w-5xl mx-auto p-4 lg:p-8">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 lg:mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Contas a Pagar</h1>
           <p className="text-sm text-gray-500 mt-0.5">Panorama mensal</p>
         </div>
-        <button onClick={() => setModalNova(true)} className="btn-primary">+ Nova conta</button>
+        <button onClick={() => setModalNova(true)} className="btn-primary text-sm px-3 py-2 lg:px-5 lg:py-2.5">+ Nova</button>
       </div>
 
       {/* Navegação de mês */}
@@ -139,30 +139,26 @@ export default function ContasPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-1">Total do mês</p>
-          <p className="text-lg font-semibold text-gray-900">{formatBRL(totais.total)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 mb-5 lg:mb-6">
+        <div className="card !p-3 lg:!p-6 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start gap-2">
+          <p className="text-xs text-gray-500">Total do mês</p>
+          <p className="text-base lg:text-lg font-semibold text-gray-900">{formatBRL(totais.total)}</p>
         </div>
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-1">Pendente</p>
-          <p className="text-lg font-semibold text-amber-600">
-            {formatBRL(totais.pendente)}
-            <span className="text-sm font-normal text-gray-400 ml-1">({totais.qPendente} contas)</span>
-          </p>
+        <div className="card !p-3 lg:!p-6 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start gap-2">
+          <p className="text-xs text-gray-500">Pendente</p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-base lg:text-lg font-semibold text-amber-600">{formatBRL(totais.pendente)}</p>
+            <span className="text-xs text-gray-400">({totais.qPendente})</span>
+          </div>
         </div>
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-1">Atrasadas</p>
-          <p className={`text-lg font-semibold ${totais.qAtrasado > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-            {formatBRL(contasDoMes.filter(c => statusPagamento(c, mesVis, anoVis) === 'atrasado').reduce((s, c) => s + (c.valor ?? 0), 0))}
-            <span className="text-sm font-normal text-gray-400 ml-1">({totais.qAtrasado} {totais.qAtrasado !== 1 ? 'contas' : 'conta'})</span>
-          </p>
-          {atrasados.length > 0 && (
-            <p className="text-xs text-gray-400 mt-1">
-              Acumulado: <span className="text-red-400 font-medium">{formatBRL(atrasados.reduce((s, { conta }) => s + (conta.valor ?? 0), 0))}</span>
-              <span className="ml-1">({atrasados.length} entr{atrasados.length !== 1 ? 'adas' : 'ada'})</span>
+        <div className="card !p-3 lg:!p-6 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start gap-2">
+          <p className="text-xs text-gray-500">Atrasadas</p>
+          <div className="flex items-baseline gap-1">
+            <p className={`text-base lg:text-lg font-semibold ${totais.qAtrasado > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+              {formatBRL(contasDoMes.filter(c => statusPagamento(c, mesVis, anoVis) === 'atrasado').reduce((s, c) => s + (c.valor ?? 0), 0))}
             </p>
-          )}
+            <span className="text-xs text-gray-400">({totais.qAtrasado})</span>
+          </div>
         </div>
       </div>
 
@@ -234,7 +230,8 @@ export default function ContasPage() {
 
           {/* Tabela */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: 560 }}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Nome</th>
@@ -323,6 +320,7 @@ export default function ContasPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
@@ -332,7 +330,8 @@ export default function ContasPage() {
           {atrasados.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-gray-400">Nenhuma conta atrasada.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: 420 }}>
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Mês ref.</th>
@@ -371,13 +370,15 @@ export default function ContasPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
 
       {aba === 'projecao' && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: 460 }}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Vencimento</th>
@@ -421,6 +422,7 @@ export default function ContasPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

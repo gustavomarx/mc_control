@@ -99,45 +99,49 @@ function TabelaComissoes({ dados, anterior }: TabelaProps) {
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 w-8">#</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Profissional</th>
-              <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Faturado</th>
-              <th className="px-4 py-3 text-xs font-medium text-gray-500 w-32">% do total</th>
-              <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">A Pagar</th>
-              <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Valor Casa</th>
-            </tr>
-          </thead>
-          <tbody>
-            {comAtendimento.map((prof, i) => (
-              <tr key={prof.nome} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                <td className="px-4 py-3 text-center text-sm">
-                  {i < 3 ? MEDALHAS[i] : <span className="text-xs text-gray-400">{i + 1}</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-medium text-gray-900">{prof.nome}</span>
-                  {badgeQueda(prof)}
-                </td>
-                <td className="px-4 py-3 text-right font-medium text-gray-900">{moeda(prof.faturado)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                      <div
-                        className="bg-emerald-500 h-1.5 rounded-full"
-                        style={{ width: `${prof.percentualTotal}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500 w-8 text-right">{prof.percentualTotal.toFixed(0)}%</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right text-gray-700">{moeda(prof.aPagar)}</td>
-                <td className="px-4 py-3 text-right text-gray-700">{moeda(prof.valorCasa)}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: 520 }}>
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left px-3 py-3 text-xs font-medium text-gray-500 w-8">#</th>
+                <th className="text-left px-3 py-3 text-xs font-medium text-gray-500">Nome</th>
+                <th className="text-right px-3 py-3 text-xs font-medium text-gray-500">Faturado</th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28">% total</th>
+                <th className="text-right px-3 py-3 text-xs font-medium text-gray-500">A Pagar</th>
+                <th className="text-right px-3 py-3 text-xs font-medium text-gray-500">Valor Casa</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {comAtendimento.map((prof, i) => (
+                <tr key={prof.nome} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                  <td className="px-3 py-3 text-center text-sm">
+                    {i < 3 ? MEDALHAS[i] : <span className="text-xs text-gray-400">{i + 1}</span>}
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className="font-medium text-gray-900 whitespace-nowrap">
+                      {prof.nome.split(' ')[0]}
+                    </span>
+                    {badgeQueda(prof)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-medium text-gray-900 whitespace-nowrap">{moeda(prof.faturado)}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 bg-gray-100 rounded-full h-1.5" style={{ minWidth: 40 }}>
+                        <div
+                          className="bg-emerald-500 h-1.5 rounded-full"
+                          style={{ width: `${prof.percentualTotal}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 w-7 text-right shrink-0">{prof.percentualTotal.toFixed(0)}%</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-right text-gray-700 whitespace-nowrap">{moeda(prof.aPagar)}</td>
+                  <td className="px-3 py-3 text-right text-gray-700 whitespace-nowrap">{moeda(prof.valorCasa)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {semAtendimento.length > 0 && (
@@ -228,7 +232,7 @@ export default function ComissoesPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50">
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-5 lg:px-6 lg:py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -275,15 +279,15 @@ export default function ComissoesPage() {
             </p>
 
             {/* KPIs */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               {[
                 { label: 'Total Faturado', valor: dadosExibidos.totalFaturado, cor: 'text-emerald-600' },
                 { label: 'Total A Pagar', valor: dadosExibidos.totalAPagar, cor: 'text-blue-600' },
                 { label: 'Valor Casa', valor: dadosExibidos.valorCasa, cor: 'text-gray-900' },
               ].map(({ label, valor, cor }) => (
-                <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 text-center">
-                  <p className={`text-2xl font-bold ${cor}`}>{moeda(valor)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+                <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex sm:flex-col items-center sm:items-center justify-between sm:justify-center gap-2">
+                  <p className="text-xs text-gray-500">{label}</p>
+                  <p className={`text-xl font-bold ${cor}`}>{moeda(valor)}</p>
                 </div>
               ))}
             </div>
