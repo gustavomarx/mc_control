@@ -118,6 +118,7 @@ scripts/seed.ts
 - Meta: **clientes únicas** (`clientesUnicas`); agendamentos totais exibidos como secundário
 - Label das semanas: "Semana de 11 a 16 de Mai"
 - Upload salva todas as semanas do arquivo em paralelo no Firestore (`agenda_avec/{semanaKey}`)
+- Tabela por profissional: exibe **clientes únicas por dia** (deduplicadas por nome), excluindo Cancelado e Faltou
 
 ## Módulo CRM — Aniversariantes
 - Relatório AVEC: `https://admin.avec.beauty/admin/relatorio/0001`
@@ -156,6 +157,8 @@ scripts/seed.ts
 - Campos: título, descrição, responsável (gabriela/gustavo/equipe), categoria, prioridade, dataEntrega, recorrência, subtarefas
 - Recorrências: única, diária, semanal, quinzenal, mensal
 - Histórico de conclusões em `historico_conclusoes[]`
+- Filtro padrão ao abrir: **"Hoje & Atrasadas"** (tarefas pendentes com dataEntrega ≤ hoje)
+- Tag "Atrasada" no card: só aparece quando dataEntrega < hoje (sem hora — não marca tarefas de hoje)
 
 ## Módulo DRE — Wizard 3 etapas
 1. **Informações** — mês/ano + faturamento AVEC (Pix, Débito, Crédito, Dinheiro)
