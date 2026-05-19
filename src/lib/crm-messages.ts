@@ -13,5 +13,5 @@ export function normalizarCelular(celular: string): string {
 }
 
 export function linkWhatsApp(celular: string): string {
-  return `https://wa.me/55${normalizarCelular(celular)}`
+  return `https://web.whatsapp.com/send?phone=55${normalizarCelular(celular)}`
 }

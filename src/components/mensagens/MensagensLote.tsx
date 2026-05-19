@@ -765,7 +765,7 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
                             ) : (
                               <>
                                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--warm-gray)', fontFamily: 'monospace' }}>{formatTel(r.celular)}</span>
-                                <a href={`https://wa.me/55${r.celular}`} target="_blank" rel="noopener noreferrer" title="Abrir contato" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: 'var(--wa-green-light)', color: 'var(--wa-green-dark)', textDecoration: 'none', flexShrink: 0, transition: 'all .15s' }}>
+                                <a href={`https://web.whatsapp.com/send?phone=55${r.celular}`} target="_blank" rel="noopener noreferrer" title="Abrir contato" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: 'var(--wa-green-light)', color: 'var(--wa-green-dark)', textDecoration: 'none', flexShrink: 0, transition: 'all .15s' }}>
                                   <WaIcon />
                                 </a>
                               </>
