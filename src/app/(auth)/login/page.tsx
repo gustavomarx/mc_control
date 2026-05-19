@@ -9,6 +9,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [lembrar, setLembrar] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
 
@@ -17,7 +18,7 @@ export default function LoginPage() {
     setErro('')
     setCarregando(true)
     try {
-      await login(email, senha)
+      await login(email, senha, lembrar)
       router.push('/home')
     } catch {
       setErro('E-mail ou senha incorretos.')
@@ -117,6 +118,19 @@ export default function LoginPage() {
               className="input"
             />
           </div>
+
+          {/* Lembrar acesso */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={lembrar}
+              onChange={e => setLembrar(e.target.checked)}
+              style={{ width: 15, height: 15, accentColor: '#C9956B', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: 13, color: '#8B6E6A', fontFamily: "'Jost', sans-serif" }}>
+              Lembrar acesso por 30 dias
+            </span>
+          </label>
 
           {erro && (
             <p style={{ fontSize: 13, background: '#fff1f2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', margin: 0 }}>

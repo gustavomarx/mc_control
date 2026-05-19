@@ -8,6 +8,8 @@ import type { Usuario, PerfilUsuario } from '@/types'
 
 const ROTAS_ATENDENTE = ['/mensagens', '/tarefas', '/agenda', '/crm']
 
+const REMEMBER_KEY = 'mc_remember_me'
+
 interface AuthContextValue {
   user: User | null
   usuario: Usuario | null
@@ -15,7 +17,7 @@ interface AuthContextValue {
   perfil: PerfilUsuario | null
   nomeUsuario: string | null
   podeAcessar: (rota: string) => boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -31,7 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(firebaseUser)
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken()
-        document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Strict`
+        const maxAge = localStorage.getItem(REMEMBER_KEY) === '1' ? 2592000 : 3600
+        document.cookie = `firebase-token=${token}; path=/; max-age=${maxAge}; SameSite=Strict`
         const data = await getUsuario(firebaseUser.uid)
         if (data && data.ativo === false) {
           // Usuário desativado — faz logout
@@ -44,7 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUsuario(data)
         if (data?.perfil) {
-          document.cookie = `user-perfil=${data.perfil}; path=/; max-age=3600; SameSite=Strict`
+          const maxAge = localStorage.getItem(REMEMBER_KEY) === '1' ? 2592000 : 3600
+          document.cookie = `user-perfil=${data.perfil}; path=/; max-age=${maxAge}; SameSite=Strict`
         }
       } else {
         document.cookie = 'firebase-token=; path=/; max-age=0'
@@ -62,11 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return ROTAS_ATENDENTE.some(r => rota === r || rota.startsWith(r + '/'))
   }
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, rememberMe = false) {
+    if (rememberMe) {
+      localStorage.setItem(REMEMBER_KEY, '1')
+    } else {
+      localStorage.removeItem(REMEMBER_KEY)
+    }
     await signInWithEmailAndPassword(auth, email, password)
   }
 
   async function logout() {
+    localStorage.removeItem(REMEMBER_KEY)
     await signOut(auth)
   }
 
