@@ -5,7 +5,6 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Studio Meus Cílios — Controle',
   description: 'Sistema de gestão interno — G&G Company LTDA',
-  icons: { icon: '/logo.png' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
