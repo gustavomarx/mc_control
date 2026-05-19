@@ -13,11 +13,22 @@ interface MetaAgenda {
   semanaKey: string
 }
 
-export function useAgenda() {
-  const [historico, setHistorico] = useState<AgendaAvec[]>([])
-  const [metaSemanal, setMetaSemanal] = useState(30)
-  const [loading, setLoading] = useState(true)
+export interface TabelaInfo {
+  servicos: Record<string, number>   // nome → valor
+  totalServicos: number
+  atualizadoEm: Timestamp | null
+}
 
+export function useAgenda() {
+  const [historico, setHistorico]       = useState<AgendaAvec[]>([])
+  const [metaSemanal, setMetaSemanal]   = useState(30)
+  const [tabela, setTabela]             = useState<TabelaInfo>({
+    servicos: {}, totalServicos: 0, atualizadoEm: null,
+  })
+  const [loading, setLoading]           = useState(true)
+  const [loadingTabela, setLoadingTabela] = useState(true)
+
+  // ── Agenda semanal ──────────────────────────────────────────
   useEffect(() => {
     const q = query(collection(db, 'agenda_avec'), orderBy('uploadEm', 'desc'))
     const unsub = onSnapshot(q, snap => {
@@ -27,6 +38,7 @@ export function useAgenda() {
     return unsub
   }, [])
 
+  // ── Meta semanal ────────────────────────────────────────────
   useEffect(() => {
     getDoc(doc(db, 'configuracoes', 'agenda_meta')).then(snap => {
       if (snap.exists()) {
@@ -36,11 +48,27 @@ export function useAgenda() {
     })
   }, [])
 
+  // ── Tabela de preços ────────────────────────────────────────
+  useEffect(() => {
+    getDoc(doc(db, 'configuracoes', 'tabela_precos')).then(snap => {
+      if (snap.exists()) {
+        const data = snap.data()
+        setTabela({
+          servicos:      data.servicos ?? {},
+          totalServicos: data.totalServicos ?? 0,
+          atualizadoEm:  data.atualizadoEm ?? null,
+        })
+      }
+      setLoadingTabela(false)
+    })
+  }, [])
+
+  // ── Agenda atual ────────────────────────────────────────────
   const agendaAtual = (() => {
     const hoje = new Date()
-    const dow = hoje.getDay()
+    const dow  = hoje.getDay()
     const diff = dow === 0 ? -6 : 1 - dow
-    const seg = new Date(hoje)
+    const seg  = new Date(hoje)
     seg.setDate(hoje.getDate() + diff)
     seg.setHours(0, 0, 0, 0)
     const y = seg.getFullYear()
@@ -50,6 +78,7 @@ export function useAgenda() {
     return historico.find(h => h.semanaKey === chaveHoje) ?? historico[0] ?? null
   })()
 
+  // ── Saves ───────────────────────────────────────────────────
   const salvarAgenda = useCallback(async (agendas: AgendaAvec | AgendaAvec[]) => {
     const lista = Array.isArray(agendas) ? agendas : [agendas]
     await Promise.all(lista.map(a => setDoc(doc(db, 'agenda_avec', a.semanaKey), a)))
@@ -64,5 +93,19 @@ export function useAgenda() {
     setMetaSemanal(meta)
   }, [])
 
-  return { agendaAtual, historico, metaSemanal, loading, salvarAgenda, salvarMeta }
+  const salvarTabelaPrecos = useCallback(async (servicos: Record<string, number>) => {
+    const agora = Timestamp.now()
+    await setDoc(doc(db, 'configuracoes', 'tabela_precos'), {
+      servicos,
+      totalServicos: Object.keys(servicos).length,
+      atualizadoEm:  agora,
+    })
+    setTabela({ servicos, totalServicos: Object.keys(servicos).length, atualizadoEm: agora })
+  }, [])
+
+  return {
+    agendaAtual, historico, metaSemanal, loading,
+    tabela, loadingTabela,
+    salvarAgenda, salvarMeta, salvarTabelaPrecos,
+  }
 }
