@@ -351,22 +351,95 @@ function PainelAgenda({ agenda, meta, tabela, temTabela }: PainelAgendaProps) {
           <span>Ver detalhes por serviço</span>
           <span className="text-gray-400 text-xs">{expandirServicos ? '▲' : '▼'}</span>
         </button>
-        {expandirServicos && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border-t border-gray-100">
-            {[
-              { label: 'Cílios',     valor: agenda.porServico.cilios,    emoji: '👁️' },
-              { label: 'Unhas',      valor: agenda.porServico.unhas,     emoji: '💅' },
-              { label: 'Agregados',  valor: agenda.porServico.agregados, emoji: '✨' },
-              { label: 'Outros',     valor: agenda.porServico.outros,    emoji: '📋' },
-            ].map(({ label, valor, emoji }) => (
-              <div key={label} className="p-4 text-center border-r border-gray-100 last:border-0">
-                <p className="text-xl mb-1">{emoji}</p>
-                <p className="text-2xl font-bold text-gray-900">{valor}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+
+        {expandirServicos && (() => {
+          // Contagem de serviços ativos
+          const contagem = new Map<string, number>()
+          for (const ag of agenda.agendamentos ?? []) {
+            if (!STATUS_ATIVOS.has(ag.status)) continue
+            const s = ag.servico?.trim()
+            if (s) contagem.set(s, (contagem.get(s) ?? 0) + 1)
+          }
+
+          const lista = [...contagem.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([servico, qtd]) => {
+              const preco = tabela[servico]
+                ?? tabela[servico.trim()]
+                ?? (() => {
+                  const lower = servico.toLowerCase()
+                  const m = Object.entries(tabela).find(([k]) => k.toLowerCase() === lower)
+                  return m ? m[1] : undefined
+                })()
+              return { servico, qtd, preco: preco ?? null }
+            })
+
+          const totalEstimado = lista.reduce((s, r) => s + (r.preco ? r.preco * r.qtd : 0), 0)
+
+          return (
+            <div className="border-t border-gray-100">
+              {/* Categorias resumo */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border-b border-gray-100">
+                {[
+                  { label: 'Cílios',    valor: agenda.porServico.cilios,    emoji: '👁️' },
+                  { label: 'Unhas',     valor: agenda.porServico.unhas,     emoji: '💅' },
+                  { label: 'Agregados', valor: agenda.porServico.agregados, emoji: '✨' },
+                  { label: 'Outros',    valor: agenda.porServico.outros,    emoji: '📋' },
+                ].map(({ label, valor, emoji }) => (
+                  <div key={label} className="p-4 text-center border-r border-gray-100 last:border-0">
+                    <p className="text-xl mb-1">{emoji}</p>
+                    <p className="text-2xl font-bold text-gray-900">{valor}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Tabela por serviço */}
+              {lista.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: 380 }}>
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Serviço</th>
+                        <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-500">Qtd</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Preço unit.</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {lista.map(({ servico, qtd, preco }) => (
+                        <tr key={servico} className="hover:bg-gray-50/60">
+                          <td className="px-4 py-2.5 text-gray-800 max-w-[200px]">
+                            <span className="block truncate text-xs" title={servico}>{servico}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center font-semibold text-gray-900">{qtd}</td>
+                          <td className="px-4 py-2.5 text-right text-gray-600">
+                            {preco !== null ? fmt(preco) : <span className="text-gray-300 text-xs">sem preço</span>}
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-medium text-gray-900">
+                            {preco !== null ? fmt(preco * qtd) : <span className="text-gray-300">—</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    {totalEstimado > 0 && (
+                      <tfoot>
+                        <tr className="border-t border-gray-200 bg-emerald-50">
+                          <td className="px-4 py-2.5 text-xs font-semibold text-emerald-700" colSpan={3}>
+                            Total estimado
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-bold text-emerald-700">
+                            {fmt(totalEstimado)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
