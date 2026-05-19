@@ -192,9 +192,14 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
   const [enviadas, setEnviadas] = useState<Set<number>>(new Set())
   const [cardsSelecionados, setCardsSelecionados] = useState<Set<number>>(new Set())
 
+  const [modalAjudaExtensao, setModalAjudaExtensao] = useState(false)
   const [modalConfirm, setModalConfirm] = useState(false)
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null)
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const [delayMin, setDelayMin] = useState(20)
+  const [delayMax, setDelayMax] = useState(45)
   const abortadoRef = useRef(false)
+  const skipDelayRef = useRef(false)
   const waTabRef = useRef<Window | null>(null)
   const proximoResolveRef = useRef<(() => void) | null>(null)
 
@@ -315,7 +320,7 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
 
   // ── Auto-send ──────────────────────────────────────────────────────────────────
 
-  async function iniciarEnvioSemiAutomatico() {
+  async function iniciarEnvioAutomatico() {
     const itens = Array.from(cardsSelecionados)
       .filter(i => !enviadas.has(i))
       .map(i => ({ index: i, url: buildWaUrl(comTelefone[i].celular, getMensagem(i)) }))
@@ -323,48 +328,70 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
     if (!itens.length) { showToast('Nenhuma mensagem selecionada.'); return }
 
     abortadoRef.current = false
-    waTabRef.current = window.open('about:blank', 'wa-sender-tab')
+    skipDelayRef.current = false
 
     for (let k = 0; k < itens.length; k++) {
       if (abortadoRef.current) break
 
       const { index, url } = itens[k]
 
-      if (waTabRef.current && !waTabRef.current.closed) {
-        waTabRef.current.location.href = url
-      } else {
-        waTabRef.current = window.open(url, 'wa-sender-tab')
-      }
+      // Abre (ou reutiliza) aba nomeada
+      waTabRef.current = window.open(url, 'wa-sender-tab')
       waTabRef.current?.focus()
 
       setProgresso({ atual: k + 1, total: itens.length })
+      setCountdown(null)
 
-      await new Promise<void>(resolve => { proximoResolveRef.current = resolve })
+      // Aguarda a aba fechar (extensão fecha após enviar)
+      await new Promise<void>(resolve => {
+        const poll = setInterval(() => {
+          if (abortadoRef.current || !waTabRef.current || waTabRef.current.closed) {
+            clearInterval(poll)
+            resolve()
+          }
+        }, 1000)
+        proximoResolveRef.current = () => { clearInterval(poll); resolve() }
+      })
+
       if (abortadoRef.current) break
 
       marcarEnviada(index)
+
+      // Delay aleatório entre mensagens (exceto após a última)
+      if (k < itens.length - 1 && !abortadoRef.current) {
+        const secs = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
+        skipDelayRef.current = false
+        for (let t = secs; t > 0; t--) {
+          if (abortadoRef.current || skipDelayRef.current) break
+          setCountdown(t)
+          await new Promise<void>(r => setTimeout(r, 1000))
+        }
+        setCountdown(null)
+        if (abortadoRef.current) break
+      }
     }
 
     if (!abortadoRef.current) {
-      if (waTabRef.current && !waTabRef.current.closed) waTabRef.current.close()
       waTabRef.current = null
       setProgresso(null)
+      setCountdown(null)
       showToast(`✦ ${itens.length} mensagem${itens.length !== 1 ? 's' : ''} enviada${itens.length !== 1 ? 's' : ''} com sucesso!`)
     }
   }
 
-  function clicarProximo() {
-    proximoResolveRef.current?.()
-    proximoResolveRef.current = null
+  function pularDelay() {
+    skipDelayRef.current = true
   }
 
   function abortar() {
     abortadoRef.current = true
+    skipDelayRef.current = true
     proximoResolveRef.current?.()
     proximoResolveRef.current = null
     if (waTabRef.current && !waTabRef.current.closed) waTabRef.current.close()
     waTabRef.current = null
     setProgresso(null)
+    setCountdown(null)
     showToast('Envio cancelado.')
   }
 
@@ -674,7 +701,7 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
 
               {/* Auto-send bar */}
               {comTelefone.length > 0 && !progresso && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingBottom: 4 }}>
                   <button
                     onClick={() => setModalConfirm(true)}
                     style={{
@@ -699,18 +726,34 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
                 <div style={{ background: 'var(--bordeaux-dark)', borderTop: '2px solid var(--bordeaux-light)', borderRadius: 10, padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 4px 16px rgba(74,18,40,.35)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 1, fontFamily: "'Jost', sans-serif", fontSize: 14, color: 'var(--rose-gold-light)' }}>
-                      Enviando… <strong style={{ color: '#fff', fontSize: 16 }}>{progresso.atual}</strong> de <strong style={{ color: '#fff', fontSize: 16 }}>{progresso.total}</strong>
+                      {countdown !== null ? (
+                        <>
+                          Próxima em… <strong style={{ color: '#fff', fontSize: 16, minWidth: 22, textAlign: 'right' }}>{countdown}s</strong>
+                          <span style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginLeft: 2 }}>({progresso.atual} de {progresso.total})</span>
+                        </>
+                      ) : (
+                        <>
+                          Aguardando WA… <strong style={{ color: '#fff', fontSize: 16 }}>{progresso.atual}</strong> de <strong style={{ color: '#fff', fontSize: 16 }}>{progresso.total}</strong>
+                        </>
+                      )}
                     </div>
                     <button onClick={abortar} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', color: 'var(--rose-gold-light)', padding: '6px 14px', borderRadius: 20, fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                       Abortar
                     </button>
-                    <button onClick={clicarProximo} style={{ background: 'var(--wa-green)', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 20, fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      ✓ Enviado — Próximo
-                    </button>
+                    {countdown !== null && (
+                      <button onClick={pularDelay} style={{ background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)', color: '#fff', padding: '6px 16px', borderRadius: 20, fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                        Pular espera →
+                      </button>
+                    )}
                   </div>
                   <div style={{ height: 5, background: 'rgba(255,255,255,.12)', borderRadius: 10, overflow: 'hidden' }}>
                     <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--rose-gold) 0%, #e8b08a 100%)', borderRadius: 10, width: `${((progresso.atual - 1) / progresso.total) * 100}%`, transition: 'width .4s ease' }} />
                   </div>
+                  {countdown !== null && (
+                    <div style={{ height: 3, background: 'rgba(255,255,255,.08)', borderRadius: 10, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'rgba(255,255,255,.35)', borderRadius: 10, width: `${(countdown / delayMax) * 100}%`, transition: 'width 1s linear' }} />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -836,6 +879,77 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
         </div>
       </div>
 
+      {/* ── Botão fixo extensão ── */}
+      <button
+        onClick={() => setModalAjudaExtensao(true)}
+        title="Extensão WA Auto Sender"
+        style={{ position: 'fixed', top: 16, right: 16, zIndex: 90, display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: '#fff', border: '1.5px solid var(--beige)', borderRadius: 20, boxShadow: '0 2px 10px rgba(74,18,40,.1)', fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 600, color: 'var(--warm-gray)', cursor: 'pointer', transition: 'all .18s' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--rose-gold)'; (e.currentTarget as HTMLElement).style.color = 'var(--bordeaux-dark)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--beige)'; (e.currentTarget as HTMLElement).style.color = 'var(--warm-gray)' }}
+      >
+        <PuzzleIcon /> Extensão
+      </button>
+
+      {/* ── Modal ajuda extensão ── */}
+      {modalAjudaExtensao && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(74,18,40,.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 18, padding: '32px 28px', width: 'min(480px, 94vw)', boxShadow: '0 20px 60px rgba(74,18,40,.3)', display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, var(--bordeaux-mid), var(--bordeaux-dark))', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--rose-gold-light)', flexShrink: 0 }}>
+                  <PuzzleIcon size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, fontStyle: 'italic', color: 'var(--bordeaux-dark)', margin: 0 }}>Extensão WA Auto Sender</h3>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--warm-gray)', margin: 0 }}>Necessária para envio automático</p>
+                </div>
+              </div>
+              <button onClick={() => setModalAjudaExtensao(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-gray)', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            {/* Download */}
+            <a
+              href="/wa_extension.zip"
+              download="wa_extension.zip"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '13px 20px', background: 'linear-gradient(135deg, var(--bordeaux-mid) 0%, var(--bordeaux-dark) 100%)', color: 'var(--rose-gold-light)', borderRadius: 10, fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '.04em', textDecoration: 'none', boxShadow: '0 4px 14px rgba(74,18,40,.3)', marginBottom: 24 }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={17} height={17}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Baixar extensão (.zip)
+            </a>
+
+            {/* Steps */}
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--warm-gray)', marginBottom: 12 }}>Como instalar</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+              {[
+                { n: '1', texto: 'Baixe o ZIP acima e extraia em uma pasta permanente (ex: Documentos)' },
+                { n: '2', texto: <>No Chrome, acesse <strong style={{ fontFamily: 'monospace', fontSize: 12 }}>chrome://extensions</strong></> },
+                { n: '3', texto: 'Ative o "Modo do desenvolvedor" no canto superior direito' },
+                { n: '4', texto: 'Clique em "Carregar sem compactação" e selecione a pasta extraída' },
+                { n: '5', texto: 'A extensão "WA Auto Sender — mc_control" aparecerá na lista' },
+              ].map(s => (
+                <div key={s.n} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ minWidth: 24, height: 24, background: 'linear-gradient(135deg, var(--rose-gold) 0%, #b87f56 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0, fontFamily: "'Jost', sans-serif", marginTop: 1 }}>{s.n}</span>
+                  <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{s.texto}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Aviso */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 12px' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth={2} width={16} height={16} style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: '#92400e', lineHeight: 1.5, margin: 0 }}>
+                Antes de usar: confirme que o <strong>WhatsApp Web está logado</strong> neste Chrome. A extensão não abre sessão — só envia.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ── Modal confirmação ── */}
       {modalConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(74,18,40,.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
@@ -849,16 +963,33 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
               Confirmar envio
             </h3>
             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 15, color: 'var(--text)', lineHeight: 1.6 }}>
-              Serão abertas mensagens para <strong>{qtdSelecionadas} cliente{qtdSelecionadas !== 1 ? 's' : ''}</strong> em sequência. Você confirmará cada envio manualmente.
+              Serão enviadas mensagens para <strong>{qtdSelecionadas} cliente{qtdSelecionadas !== 1 ? 's' : ''}</strong> automaticamente. A extensão WA Auto Sender cuidará do envio.
             </p>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--warm-gray)', lineHeight: 1.5, background: 'var(--cream)', border: '1px solid var(--beige)', borderRadius: 8, padding: '10px 14px', width: '100%' }}>
-              O WhatsApp Web será aberto em uma aba compartilhada. Não feche essa aba durante o envio.
-            </p>
+            <div style={{ background: 'var(--cream)', border: '1px solid var(--beige)', borderRadius: 8, padding: '12px 14px', width: '100%' }}>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--warm-gray)', marginBottom: 10 }}>
+                Após cada confirmação, aguarda um tempo aleatório antes de abrir a próxima — para evitar bloqueio por bot.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Jost', sans-serif", fontSize: 13 }}>
+                <span style={{ color: 'var(--warm-gray)', whiteSpace: 'nowrap' }}>Espera:</span>
+                <input
+                  type="number" min={5} max={120} value={delayMin}
+                  onChange={e => setDelayMin(Math.max(5, parseInt(e.target.value) || 5))}
+                  style={{ width: 54, border: '1.5px solid var(--beige)', borderRadius: 6, padding: '4px 8px', fontSize: 13, fontFamily: "'Jost', sans-serif", textAlign: 'center', color: 'var(--text)', background: '#fff', outline: 'none' }}
+                />
+                <span style={{ color: 'var(--warm-gray)' }}>a</span>
+                <input
+                  type="number" min={5} max={120} value={delayMax}
+                  onChange={e => setDelayMax(Math.max(delayMin, parseInt(e.target.value) || delayMin))}
+                  style={{ width: 54, border: '1.5px solid var(--beige)', borderRadius: 6, padding: '4px 8px', fontSize: 13, fontFamily: "'Jost', sans-serif", textAlign: 'center', color: 'var(--text)', background: '#fff', outline: 'none' }}
+                />
+                <span style={{ color: 'var(--warm-gray)' }}>segundos</span>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 6 }}>
               <button onClick={() => setModalConfirm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1.5px solid var(--beige)', background: 'var(--cream)', color: 'var(--warm-gray)', fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button onClick={() => { setModalConfirm(false); iniciarEnvioSemiAutomatico() }} style={{ flex: 1, padding: 12, borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, var(--bordeaux-mid) 0%, var(--bordeaux-dark) 100%)', color: 'var(--rose-gold-light)', fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 3px 10px rgba(74,18,40,.3)' }}>
+              <button onClick={() => { setModalConfirm(false); iniciarEnvioAutomatico() }} style={{ flex: 1, padding: 12, borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, var(--bordeaux-mid) 0%, var(--bordeaux-dark) 100%)', color: 'var(--rose-gold-light)', fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 3px 10px rgba(74,18,40,.3)' }}>
                 Iniciar
               </button>
             </div>
@@ -877,6 +1008,15 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
 }
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
+
+function PuzzleIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={size} height={size}>
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+      <line x1="7" y1="7" x2="7.01" y2="7"/>
+    </svg>
+  )
+}
 
 function WaIcon() {
   return (

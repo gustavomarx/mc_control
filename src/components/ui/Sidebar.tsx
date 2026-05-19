@@ -146,62 +146,64 @@ export default function Sidebar({ onClose }: SidebarProps) {
 function SidebarLogo({ onClose }: { onClose?: () => void }) {
   return (
     <div style={{
-      padding: '20px 16px 16px',
+      padding: '24px 16px 20px',
       borderBottom: '1px solid rgba(139,47,80,.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      textAlign: 'center',
+      position: 'relative',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 34, height: 34,
-          background: 'linear-gradient(135deg, #C9956B, #b87f56)',
-          borderRadius: 9,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', flexShrink: 0,
-          boxShadow: '0 2px 8px rgba(201,149,107,.35)',
-        }}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-          </svg>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-          <span style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: 15, fontWeight: 600, color: '#fff',
-            letterSpacing: '.01em', whiteSpace: 'nowrap',
-            overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            Studio Meus Cílios
-          </span>
-          <span style={{
-            fontFamily: "'Jost', sans-serif",
-            fontSize: 10, fontWeight: 400, color: '#E8C4A8',
-            letterSpacing: '.1em', textTransform: 'uppercase',
-          }}>
-            ✦ Gestão
-          </span>
-        </div>
-      </div>
-
-      {/* Botão fechar — só aparece no mobile */}
+      {/* Botão fechar — só no mobile */}
       {onClose && (
         <button
           onClick={onClose}
           className="lg:hidden"
           style={{
+            position: 'absolute', top: 12, right: 12,
             background: 'none', border: 'none',
             padding: 6, cursor: 'pointer',
-            color: 'rgba(232,196,168,.6)',
+            color: 'rgba(232,196,168,.45)',
             display: 'flex', alignItems: 'center',
           }}
           aria-label="Fechar menu"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
           </svg>
         </button>
       )}
+
+      {/* Logo */}
+      <img
+        src="/logo.png"
+        alt="Studio Meus Cílios"
+        style={{ display: 'block', margin: '0 auto 12px', width: 52, height: 52, objectFit: 'contain' }}
+      />
+
+      {/* Nome */}
+      <p style={{
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+        fontSize: 16,
+        fontWeight: 300,
+        fontStyle: 'italic',
+        color: '#f0dece',
+        letterSpacing: '.04em',
+        lineHeight: 1.2,
+        margin: '0 0 6px',
+      }}>
+        Studio Meus Cílios
+      </p>
+
+      {/* Subtítulo */}
+      <p style={{
+        fontFamily: "'Jost', sans-serif",
+        fontSize: 9,
+        fontWeight: 500,
+        color: 'rgba(201,149,107,.6)',
+        letterSpacing: '.2em',
+        textTransform: 'uppercase',
+        margin: 0,
+      }}>
+        ✦&ensp;Controle
+      </p>
     </div>
   )
 }
