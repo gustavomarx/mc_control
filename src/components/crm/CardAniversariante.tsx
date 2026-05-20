@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { AniversarianteStatus, StatusAniversariante } from '@/types'
-import { msgAniversario, linkWhatsApp } from '@/lib/crm-messages'
+import { msgAniversario, aplicarTemplate, linkWhatsApp } from '@/lib/crm-messages'
 
 const STATUS_CONFIG: Record<StatusAniversariante, { label: string; cls: string }> = {
   nao_contatada: { label: 'Não contatada', cls: 'bg-gray-100 text-gray-600' },
@@ -13,13 +13,17 @@ const STATUS_CONFIG: Record<StatusAniversariante, { label: string; cls: string }
 interface Props {
   cliente: AniversarianteStatus
   onAtualizarStatus: (celular: string, status: StatusAniversariante) => Promise<void>
+  templateConteudo?: string
 }
 
-export default function CardAniversariante({ cliente, onAtualizarStatus }: Props) {
+export default function CardAniversariante({ cliente, onAtualizarStatus, templateConteudo }: Props) {
   const [copiado, setCopiado] = useState(false)
 
   function copiarMensagem() {
-    navigator.clipboard.writeText(msgAniversario(cliente.nome))
+    const msg = templateConteudo
+      ? aplicarTemplate(templateConteudo, cliente.nome)
+      : msgAniversario(cliente.nome)
+    navigator.clipboard.writeText(msg)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
   }

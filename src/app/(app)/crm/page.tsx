@@ -66,8 +66,10 @@ export default function CrmPage() {
     aniversariantes, clientes,
     loadingAniv, loadingRec,
     uploadInfoAniv, uploadInfo0051,
+    templates, templateAnivId, templateRecId,
     uploadAniversariantes, uploadAgenda0051,
     atualizarStatusAniv, atualizarStatusRec,
+    salvarConfigTemplate,
   } = useCrm()
 
   const periodo = periodoExportacao()
@@ -143,6 +145,9 @@ export default function CrmPage() {
   const totalNaoContatadas = aniversariantes.filter(c => c.status === 'nao_contatada').length
   const totalNaoContatadasRec = clientes.filter(c => c.status === 'nao_contatada').length
   const totalModelos = clientes.filter(c => c.isModelo).length
+
+  const templateAnivConteudo = templates.find(t => t.id === templateAnivId)?.conteudo
+  const templateRecConteudo = templates.find(t => t.id === templateRecId)?.conteudo
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -225,6 +230,21 @@ export default function CrmPage() {
               </button>
             </div>
 
+            {/* Seletor de template padrão */}
+            <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-2.5">
+              <span className="text-xs text-gray-500 shrink-0">Mensagem padrão:</span>
+              <select
+                value={templateAnivId}
+                onChange={e => salvarConfigTemplate('aniversario', e.target.value)}
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
+              >
+                <option value="">Padrão do sistema</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.titulo}</option>
+                ))}
+              </select>
+            </div>
+
             {loadingAniv ? (
               <p className="text-sm text-gray-400 text-center py-8">Carregando...</p>
             ) : aniversariantesFiltrados.length === 0 ? (
@@ -242,6 +262,7 @@ export default function CrmPage() {
                     key={c.id}
                     cliente={c}
                     onAtualizarStatus={atualizarStatusAniv}
+                    templateConteudo={templateAnivConteudo}
                   />
                 ))}
               </div>
@@ -373,6 +394,21 @@ export default function CrmPage() {
               </div>
             )}
 
+            {/* Seletor de template padrão */}
+            <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-2.5">
+              <span className="text-xs text-gray-500 shrink-0">Mensagem padrão:</span>
+              <select
+                value={templateRecId}
+                onChange={e => salvarConfigTemplate('recuperacao', e.target.value)}
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
+              >
+                <option value="">Padrão do sistema</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.titulo}</option>
+                ))}
+              </select>
+            </div>
+
             {loadingRec ? (
               <p className="text-sm text-gray-400 text-center py-8">Carregando...</p>
             ) : clientesFiltrados.length === 0 ? (
@@ -390,6 +426,7 @@ export default function CrmPage() {
                     key={c.id}
                     cliente={c}
                     onAtualizarStatus={atualizarStatusRec}
+                    templateConteudo={templateRecConteudo}
                   />
                 ))}
               </div>

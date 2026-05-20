@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { RecuperacaoStatus, StatusRecuperacao } from '@/types'
-import { msgRecuperacao, linkWhatsApp } from '@/lib/crm-messages'
+import { msgRecuperacao, aplicarTemplate, linkWhatsApp } from '@/lib/crm-messages'
 
 const STATUS_CONFIG: Record<StatusRecuperacao, { label: string; cls: string }> = {
   nao_contatada: { label: 'Não contatada', cls: 'bg-gray-100 text-gray-600' },
@@ -20,14 +20,18 @@ function badgeDias(dias: number): { label: string; cls: string } {
 interface Props {
   cliente: RecuperacaoStatus
   onAtualizarStatus: (celular: string, status: StatusRecuperacao) => Promise<void>
+  templateConteudo?: string
 }
 
-export default function CardRecuperacao({ cliente, onAtualizarStatus }: Props) {
+export default function CardRecuperacao({ cliente, onAtualizarStatus, templateConteudo }: Props) {
   const [copiado, setCopiado] = useState(false)
   const [tooltipVis, setTooltipVis] = useState(false)
 
   function copiarMensagem() {
-    navigator.clipboard.writeText(msgRecuperacao(cliente.nome))
+    const msg = templateConteudo
+      ? aplicarTemplate(templateConteudo, cliente.nome)
+      : msgRecuperacao(cliente.nome)
+    navigator.clipboard.writeText(msg)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
   }

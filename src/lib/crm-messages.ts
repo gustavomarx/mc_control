@@ -8,6 +8,11 @@ export function msgRecuperacao(nome: string): string {
   return `Oi ${primeiro}! 💕 Sentimos sua falta aqui no Studio Meus Cílios! Já faz um tempinho desde sua última visita e adoraríamos te receber de novo. Que tal agendar um horário? 😊`
 }
 
+export function aplicarTemplate(conteudo: string, nome: string): string {
+  const primeiro = nome.trim().split(' ')[0]
+  return conteudo.replace(/\{nome\}/g, primeiro)
+}
+
 export function normalizarCelular(celular: string): string {
   return celular.replace(/\D/g, '')
 }

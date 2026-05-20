@@ -2,12 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  collection, onSnapshot, doc, setDoc, updateDoc, Timestamp, getDoc,
+  collection, onSnapshot, doc, setDoc, updateDoc, Timestamp, getDoc, getDocs,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { AniversarianteStatus, RecuperacaoStatus, StatusAniversariante, StatusRecuperacao } from '@/types'
+import type { AniversarianteStatus, RecuperacaoStatus, StatusAniversariante, StatusRecuperacao, MensagemTemplate } from '@/types'
 import { parseAniversariantes } from '@/lib/parse-aniversariantes'
 import { parseAgenda0051 } from '@/lib/parse-agenda-cross'
+
+interface CrmConfig {
+  templateAnivId: string
+  templateRecId: string
+}
 
 interface UploadInfo {
   uploadEm: Timestamp
@@ -21,6 +26,9 @@ export function useCrm() {
   const [uploadInfo0051, setUploadInfo0051] = useState<UploadInfo | null>(null)
   const [loadingAniv, setLoadingAniv] = useState(true)
   const [loadingRec, setLoadingRec] = useState(true)
+  const [templates, setTemplates] = useState<MensagemTemplate[]>([])
+  const [templateAnivId, setTemplateAnivId] = useState('')
+  const [templateRecId, setTemplateRecId] = useState('')
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'aniversariantes_status'), snap => {
@@ -44,6 +52,16 @@ export function useCrm() {
     })
     getDoc(doc(db, 'configuracoes', 'agenda_0051_upload')).then(snap => {
       if (snap.exists()) setUploadInfo0051(snap.data() as UploadInfo)
+    })
+    getDoc(doc(db, 'configuracoes', 'crm_config')).then(snap => {
+      if (snap.exists()) {
+        const cfg = snap.data() as CrmConfig
+        setTemplateAnivId(cfg.templateAnivId ?? '')
+        setTemplateRecId(cfg.templateRecId ?? '')
+      }
+    })
+    getDocs(collection(db, 'mensagens_templates')).then(snap => {
+      setTemplates(snap.docs.map(d => ({ id: d.id, ...d.data() } as MensagemTemplate)).filter(t => t.ativo))
     })
   }, [])
 
@@ -86,6 +104,18 @@ export function useCrm() {
   }, [])
 
 
+  const salvarConfigTemplate = useCallback(async (tipo: 'aniversario' | 'recuperacao', templateId: string) => {
+    if (tipo === 'aniversario') setTemplateAnivId(templateId)
+    else setTemplateRecId(templateId)
+
+    const snap = await getDoc(doc(db, 'configuracoes', 'crm_config'))
+    const atual = snap.exists() ? (snap.data() as CrmConfig) : { templateAnivId: '', templateRecId: '' }
+    await setDoc(doc(db, 'configuracoes', 'crm_config'), {
+      ...atual,
+      [tipo === 'aniversario' ? 'templateAnivId' : 'templateRecId']: templateId,
+    })
+  }, [])
+
   const atualizarStatusAniv = useCallback(async (celular: string, status: StatusAniversariante) => {
     await updateDoc(doc(db, 'aniversariantes_status', celular), {
       status,
@@ -107,9 +137,13 @@ export function useCrm() {
     loadingRec,
     uploadInfoAniv,
     uploadInfo0051,
+    templates,
+    templateAnivId,
+    templateRecId,
     uploadAniversariantes,
     uploadAgenda0051,
     atualizarStatusAniv,
     atualizarStatusRec,
+    salvarConfigTemplate,
   }
 }
