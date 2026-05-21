@@ -67,6 +67,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
   const semanas = new Map<string, {
     agendamentos: AgendamentoAvec[]
     porDia: Record<string, AgendaDia>
+    clientesDia: Record<string, Set<string>>
     porProfissional: Record<string, Record<string, number>>
     porProfissionalClientes: Record<string, Record<string, Set<string>>>
     porServico: { cilios: number; unhas: number; agregados: number; outros: number }
@@ -89,6 +90,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
       semanas.set(chave, {
         agendamentos: [],
         porDia: {},
+        clientesDia: {},
         porProfissional: {},
         porProfissionalClientes: {},
         porServico: { cilios: 0, unhas: 0, agregados: 0, outros: 0 },
@@ -135,13 +137,16 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
       s.porDia[dataKey].faltas++
     } else if (STATUS_ATIVOS.includes(status)) {
       s.totalAtivos++
-      s.porDia[dataKey].ativos++
       if (status === 'Confirmado') s.porDia[dataKey].confirmados++
       if (status === 'Aguardando') s.porDia[dataKey].aguardando++
       if (status === 'Agendado') s.porDia[dataKey].agendados++
       if (nova) s.clientesNovas++
       const nomeCliente = agendamento.cliente.toLowerCase().trim()
-      if (nomeCliente) s.clientesUnicasSet.add(nomeCliente)
+      if (nomeCliente) {
+        s.clientesUnicasSet.add(nomeCliente)
+        if (!s.clientesDia[dataKey]) s.clientesDia[dataKey] = new Set()
+        s.clientesDia[dataKey].add(nomeCliente)
+      }
 
       const cat = classificarServico(servico)
       s.porServico[cat]++
@@ -152,6 +157,13 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
         const nomeCliente = agendamento.cliente.toLowerCase().trim()
         if (nomeCliente) s.porProfissionalClientes[profissional][dataKey].add(nomeCliente)
       }
+    }
+  }
+
+  // Preenche ativos com clientes únicas por dia
+  for (const s of semanas.values()) {
+    for (const [dataKey, dia] of Object.entries(s.porDia)) {
+      dia.ativos = s.clientesDia[dataKey]?.size ?? 0
     }
   }
 
