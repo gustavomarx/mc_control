@@ -217,17 +217,30 @@ function SidebarFooter({ nome, onLogout, isAdmin, pathname }: {
   return (
     <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(139,47,80,.4)', display: 'flex', flexDirection: 'column', gap: 10 }}>
       {isAdmin && (
-        <Link
-          href="/admin/usuarios"
-          style={{
-            fontSize: 12, fontWeight: 500,
-            fontFamily: "'Jost', sans-serif",
-            color: pathname.startsWith('/admin/usuarios') ? '#C9956B' : 'rgba(232,196,168,.5)',
-            textDecoration: 'none', letterSpacing: '.04em', transition: 'color .15s',
-          }}
-        >
-          Usuários
-        </Link>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Link
+            href="/importacoes"
+            style={{
+              fontSize: 12, fontWeight: 500,
+              fontFamily: "'Jost', sans-serif",
+              color: pathname.startsWith('/importacoes') ? '#C9956B' : 'rgba(232,196,168,.5)',
+              textDecoration: 'none', letterSpacing: '.04em', transition: 'color .15s',
+            }}
+          >
+            Importações
+          </Link>
+          <Link
+            href="/admin/usuarios"
+            style={{
+              fontSize: 12, fontWeight: 500,
+              fontFamily: "'Jost', sans-serif",
+              color: pathname.startsWith('/admin/usuarios') ? '#C9956B' : 'rgba(232,196,168,.5)',
+              textDecoration: 'none', letterSpacing: '.04em', transition: 'color .15s',
+            }}
+          >
+            Usuários
+          </Link>
+        </div>
       )}
       <div>
         {nome && (
