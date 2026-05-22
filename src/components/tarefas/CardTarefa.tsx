@@ -120,6 +120,23 @@ export default function CardTarefa({ tarefa, onConcluir, onEditar, onReabrir }: 
         </div>
       </div>
 
+      {/* Link externo */}
+      {tarefa.link && (
+        <a
+          href={tarefa.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
+          className="shrink-0 mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+          title={tarefa.link}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      )}
+
       {/* Avatar responsável */}
       <div className="shrink-0 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
         <span className="text-xs font-medium text-gray-600">
