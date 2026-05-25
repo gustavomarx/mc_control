@@ -4,9 +4,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getUsuario } from '@/lib/firestore'
-import type { Usuario, PerfilUsuario } from '@/types'
+import type { Usuario, PerfilUsuario, NivelTarefas } from '@/types'
 
-const ROTAS_ATENDENTE = ['/mensagens', '/tarefas', '/agenda', '/crm']
+const ROTAS_FINANCEIRO = ['/home', '/dashboard', '/extrato', '/contas', '/dre']
 
 const REMEMBER_KEY = 'mc_remember_me'
 
@@ -16,6 +16,7 @@ interface AuthContextValue {
   loading: boolean
   perfil: PerfilUsuario | null
   nomeUsuario: string | null
+  nivelTarefas: NivelTarefas
   podeAcessar: (rota: string) => boolean
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   logout: () => Promise<void>
@@ -63,8 +64,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function podeAcessar(rota: string): boolean {
     if (!usuario) return false
     if (usuario.perfil === 'admin') return true
-    return ROTAS_ATENDENTE.some(r => rota === r || rota.startsWith(r + '/'))
+    const p = usuario.permissoes
+    if (!p) return false
+    const match = (r: string) => rota === r || rota.startsWith(r + '/')
+    if (match('/mensagens')) return p.mensagens
+    if (match('/tarefas')) return p.tarefas
+    if (match('/agenda')) return p.agenda
+    if (match('/crm')) return p.crm
+    if (match('/comissoes')) return p.comissoes
+    if (match('/caixa')) return p.caixa
+    if (ROTAS_FINANCEIRO.some(r => match(r))) return p.financeiro
+    return false
   }
+
+  const nivelTarefas: NivelTarefas =
+    usuario?.perfil === 'admin' ? 'todos' : (usuario?.permissoes?.tarefasNivel ?? 'equipe')
 
   async function login(email: string, password: string, rememberMe = false) {
     if (rememberMe) {
@@ -87,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       perfil: usuario?.perfil ?? null,
       nomeUsuario: usuario?.nome ?? null,
+      nivelTarefas,
       podeAcessar,
       login,
       logout,

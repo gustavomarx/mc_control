@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useTarefas } from '@/hooks/useTarefas'
+import { useAuth } from '@/contexts/AuthContext'
 import CardTarefa from '@/components/tarefas/CardTarefa'
 import ModalTarefa from '@/components/tarefas/ModalTarefa'
 import type { Tarefa } from '@/types'
@@ -58,6 +59,8 @@ function fimSemana(offset = 0): Date {
 
 export default function TarefasPage() {
   const { tarefas, loading, adicionar, atualizar, excluir, concluir, reabrirTarefa } = useTarefas()
+  const { nivelTarefas } = useAuth()
+  const soEquipe = nivelTarefas === 'equipe'
   const [filtro, setFiltro] = useState<Filtro>('hoje')
   const [modalAberto, setModalAberto] = useState(false)
   const [tarefaEditando, setTarefaEditando] = useState<Tarefa | null>(null)
@@ -66,22 +69,24 @@ export default function TarefasPage() {
   hoje.setHours(0, 0, 0, 0)
 
   const tarefasFiltradas = useMemo(() => {
-    if (filtro === 'todos') return tarefas
-    if (filtro === 'gabriela') return tarefas.filter(t => t.responsavel === 'gabriela')
-    if (filtro === 'gustavo') return tarefas.filter(t => t.responsavel === 'gustavo')
-    if (filtro === 'equipe') return tarefas.filter(t => t.responsavel === 'equipe')
-    if (filtro === 'atrasadas') return tarefas.filter(t => !t.concluida && t.dataEntrega.toDate() < hoje)
+    const base = soEquipe ? tarefas.filter(t => t.responsavel === 'equipe') : tarefas
+    if (soEquipe) return base
+    if (filtro === 'todos') return base
+    if (filtro === 'gabriela') return base.filter(t => t.responsavel === 'gabriela')
+    if (filtro === 'gustavo') return base.filter(t => t.responsavel === 'gustavo')
+    if (filtro === 'equipe') return base.filter(t => t.responsavel === 'equipe')
+    if (filtro === 'atrasadas') return base.filter(t => !t.concluida && t.dataEntrega.toDate() < hoje)
     if (filtro === 'hoje') {
-      return tarefas.filter(t => {
+      return base.filter(t => {
         if (t.concluida) return false
         const d = t.dataEntrega.toDate()
         d.setHours(0, 0, 0, 0)
         return d <= hoje
       })
     }
-    if (filtro === 'recorrentes') return tarefas.filter(t => t.recorrencia !== 'unica')
-    return tarefas
-  }, [tarefas, filtro, hoje])
+    if (filtro === 'recorrentes') return base.filter(t => t.recorrencia !== 'unica')
+    return base
+  }, [tarefas, filtro, hoje, soEquipe])
 
   const pendentesHoje = tarefas.filter(t => {
     if (t.concluida) return false
@@ -204,29 +209,31 @@ export default function TarefasPage() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-2 flex-wrap mb-6">
-          {([
-            { v: 'todos',       label: 'Todos' },
-            { v: 'gabriela',    label: 'Gabriela' },
-            { v: 'gustavo',     label: 'Gustavo' },
-            { v: 'equipe',      label: 'Equipe' },
-            { v: 'hoje',        label: 'Hoje & Atrasadas' },
-            { v: 'atrasadas',   label: 'Atrasadas' },
-            { v: 'recorrentes', label: 'Recorrentes' },
-          ] as const).map(({ v, label }) => (
-            <button
-              key={v}
-              onClick={() => setFiltro(v)}
-              className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                filtro === v
-                  ? 'bg-emerald-500 text-white font-medium'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {!soEquipe && (
+          <div className="flex gap-2 flex-wrap mb-6">
+            {([
+              { v: 'todos',       label: 'Todos' },
+              { v: 'gabriela',    label: 'Gabriela' },
+              { v: 'gustavo',     label: 'Gustavo' },
+              { v: 'equipe',      label: 'Equipe' },
+              { v: 'hoje',        label: 'Hoje & Atrasadas' },
+              { v: 'atrasadas',   label: 'Atrasadas' },
+              { v: 'recorrentes', label: 'Recorrentes' },
+            ] as const).map(({ v, label }) => (
+              <button
+                key={v}
+                onClick={() => setFiltro(v)}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  filtro === v
+                    ? 'bg-emerald-500 text-white font-medium'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Grupos */}
         <div className="space-y-6">

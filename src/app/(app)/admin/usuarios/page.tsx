@@ -4,12 +4,23 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { getUsuarios } from '@/lib/firestore'
-import type { Usuario, PerfilUsuario } from '@/types'
+import type { Usuario, PerfilUsuario, PermissoesUsuario, NivelTarefas } from '@/types'
+import { PERMISSOES_PADRAO } from '@/types'
 
 const BADGE: Record<PerfilUsuario, string> = {
   admin: 'bg-purple-100 text-purple-700',
   atendente: 'bg-blue-100 text-blue-700',
 }
+
+const MODULOS: { key: keyof Omit<PermissoesUsuario, 'tarefasNivel'>; label: string }[] = [
+  { key: 'mensagens',  label: 'Mensagens' },
+  { key: 'tarefas',   label: 'Tarefas' },
+  { key: 'agenda',    label: 'Agenda' },
+  { key: 'crm',       label: 'CRM' },
+  { key: 'comissoes', label: 'Comissões' },
+  { key: 'caixa',     label: 'Caixa' },
+  { key: 'financeiro',label: 'Financeiro' },
+]
 
 export default function UsuariosPage() {
   const { usuario, perfil } = useAuth()
@@ -21,7 +32,13 @@ export default function UsuariosPage() {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
-  const [form, setForm] = useState({ nome: '', email: '', senha: '', perfil: 'atendente' as PerfilUsuario })
+  const [form, setForm] = useState({
+    nome: '',
+    email: '',
+    senha: '',
+    perfil: 'atendente' as PerfilUsuario,
+    permissoes: { ...PERMISSOES_PADRAO } as PermissoesUsuario,
+  })
 
   useEffect(() => {
     if (perfil && perfil !== 'admin') router.replace('/mensagens')
@@ -34,16 +51,24 @@ export default function UsuariosPage() {
 
   function abrirNovoModal() {
     setEditando(null)
-    setForm({ nome: '', email: '', senha: '', perfil: 'atendente' })
+    setForm({ nome: '', email: '', senha: '', perfil: 'atendente', permissoes: { ...PERMISSOES_PADRAO } })
     setErro('')
     setModalAberto(true)
   }
 
   function abrirEditarModal(u: Usuario) {
     setEditando(u)
-    setForm({ nome: u.nome, email: u.email, senha: '', perfil: u.perfil })
+    setForm({ nome: u.nome, email: u.email, senha: '', perfil: u.perfil, permissoes: { ...PERMISSOES_PADRAO, ...u.permissoes } })
     setErro('')
     setModalAberto(true)
+  }
+
+  function toggleModulo(key: keyof Omit<PermissoesUsuario, 'tarefasNivel'>) {
+    setForm(f => ({ ...f, permissoes: { ...f.permissoes, [key]: !f.permissoes[key] } }))
+  }
+
+  function setNivelTarefas(nivel: NivelTarefas) {
+    setForm(f => ({ ...f, permissoes: { ...f.permissoes, tarefasNivel: nivel } }))
   }
 
   async function salvar() {
@@ -51,13 +76,17 @@ export default function UsuariosPage() {
     setSalvando(true)
     try {
       if (editando) {
+        const patch: Record<string, unknown> = { nome: form.nome, perfil: form.perfil }
+        if (form.perfil !== 'admin') patch.permissoes = form.permissoes
         const res = await fetch(`/api/usuarios/${editando.uid}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome: form.nome, perfil: form.perfil }),
+          body: JSON.stringify(patch),
         })
         if (!res.ok) throw new Error((await res.json()).error)
-        setUsuarios(prev => prev.map(u => u.uid === editando.uid ? { ...u, nome: form.nome, perfil: form.perfil } : u))
+        setUsuarios(prev => prev.map(u => u.uid === editando.uid
+          ? { ...u, nome: form.nome, perfil: form.perfil, permissoes: form.permissoes }
+          : u))
       } else {
         const res = await fetch('/api/usuarios', {
           method: 'POST',
@@ -129,7 +158,7 @@ export default function UsuariosPage() {
                   <td className="px-4 py-3 text-gray-500">{u.email}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BADGE[u.perfil]}`}>
-                      {u.perfil}
+                      {u.perfil === 'admin' ? 'Admin' : 'Atendente'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -220,6 +249,46 @@ export default function UsuariosPage() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
+
+              {form.perfil !== 'admin' && (
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-2">Módulos</label>
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+                    {MODULOS.map(({ key, label }) => (
+                      <div key={key}>
+                        <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={form.permissoes[key]}
+                            onChange={() => toggleModulo(key)}
+                            className="accent-emerald-500"
+                          />
+                          <span className="text-sm text-gray-700">{label}</span>
+                        </label>
+                        {key === 'tarefas' && form.permissoes.tarefas && (
+                          <div className="flex gap-3 px-9 pb-2.5">
+                            {(['equipe', 'todos'] as NivelTarefas[]).map(nivel => (
+                              <label key={nivel} className="flex items-center gap-1.5 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="tarefasNivel"
+                                  value={nivel}
+                                  checked={form.permissoes.tarefasNivel === nivel}
+                                  onChange={() => setNivelTarefas(nivel)}
+                                  className="accent-emerald-500"
+                                />
+                                <span className="text-xs text-gray-600 capitalize">
+                                  {nivel === 'equipe' ? 'Somente equipe' : 'Todos'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {erro && <p className="text-xs text-red-500 mt-3">{erro}</p>}

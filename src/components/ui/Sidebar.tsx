@@ -24,13 +24,6 @@ const NAV_FINANCEIRO = [
   { href: '/dre', label: 'DRE Mensal' },
 ]
 
-const NAV_ATENDENTE = [
-  { href: '/mensagens', label: 'Mensagens' },
-  { href: '/tarefas', label: 'Tarefas' },
-  { href: '/agenda', label: 'Agenda' },
-  { href: '/crm', label: 'CRM' },
-]
-
 interface SidebarProps {
   onClose?: () => void
 }
@@ -105,13 +98,42 @@ export default function Sidebar({ onClose }: SidebarProps) {
   }
 
   if (perfil === 'atendente') {
+    const p = usuario?.permissoes
+    const topo = p?.mensagens ? [{ href: '/mensagens', label: 'Mensagens' }] : []
+    const operacional = [
+      p?.tarefas    && { href: '/tarefas',    label: 'Tarefas' },
+      p?.agenda     && { href: '/agenda',     label: 'Agenda' },
+      p?.crm        && { href: '/crm',        label: 'CRM' },
+      p?.comissoes  && { href: '/comissoes',  label: 'Comissões' },
+      p?.caixa      && { href: '/caixa',      label: 'Caixa' },
+    ].filter(Boolean) as { href: string; label: string }[]
+    const financeiro = p?.financeiro ? NAV_FINANCEIRO : []
+
     return (
       <aside style={sidebarStyle}>
         <SidebarLogo onClose={onClose} />
-        <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {NAV_ATENDENTE.map(item => <NavLink key={item.href} {...item} />)}
-          </div>
+        <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {topo.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {topo.map(item => <NavLink key={item.href} {...item} />)}
+            </div>
+          )}
+          {operacional.length > 0 && (
+            <div>
+              <SectionLabel>Operacional</SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {operacional.map(item => <NavLink key={item.href} {...item} />)}
+              </div>
+            </div>
+          )}
+          {financeiro.length > 0 && (
+            <div>
+              <SectionLabel>Financeiro</SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {financeiro.map(item => <NavLink key={item.href} {...item} />)}
+              </div>
+            </div>
+          )}
         </nav>
         <SidebarFooter nome={usuario?.nome ?? ''} onLogout={logout} isAdmin={false} pathname={pathname} />
       </aside>

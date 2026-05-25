@@ -3,6 +3,29 @@ import { Timestamp } from 'firebase/firestore'
 // ── Usuário ───────────────────────────────────────────────────────────────────
 
 export type PerfilUsuario = 'admin' | 'atendente'
+export type NivelTarefas = 'equipe' | 'todos'
+
+export interface PermissoesUsuario {
+  mensagens: boolean
+  tarefas: boolean
+  tarefasNivel: NivelTarefas
+  agenda: boolean
+  crm: boolean
+  comissoes: boolean
+  caixa: boolean
+  financeiro: boolean
+}
+
+export const PERMISSOES_PADRAO: PermissoesUsuario = {
+  mensagens: false,
+  tarefas: false,
+  tarefasNivel: 'equipe',
+  agenda: false,
+  crm: false,
+  comissoes: false,
+  caixa: false,
+  financeiro: false,
+}
 
 export interface Usuario {
   uid: string
@@ -10,6 +33,7 @@ export interface Usuario {
   email: string
   perfil: PerfilUsuario
   ativo: boolean
+  permissoes: PermissoesUsuario
   criadoEm: Timestamp
   criadoPor: string
 }

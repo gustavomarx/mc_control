@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { getAuth } from 'firebase-admin/auth'
 import { Timestamp } from 'firebase-admin/firestore'
 import type { PerfilUsuario } from '@/types'
+import { PERMISSOES_PADRAO } from '@/types'
 
 async function getRequisitante(req: NextRequest) {
   const token = req.cookies.get('firebase-token')?.value
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
       email,
       perfil,
       ativo: true,
+      permissoes: PERMISSOES_PADRAO,
       criadoEm: Timestamp.now(),
       criadoPor: admin.uid,
     })

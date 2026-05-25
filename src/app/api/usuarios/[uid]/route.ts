@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { getAuth } from 'firebase-admin/auth'
-import type { PerfilUsuario } from '@/types'
+import type { PerfilUsuario, PermissoesUsuario } from '@/types'
 
 async function getRequisitante(req: NextRequest) {
   const token = req.cookies.get('firebase-token')?.value
@@ -26,7 +26,7 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   const { uid } = await params
-  const body = await req.json() as { nome?: string; perfil?: PerfilUsuario; ativo?: boolean }
+  const body = await req.json() as { nome?: string; perfil?: PerfilUsuario; ativo?: boolean; permissoes?: PermissoesUsuario }
 
   try {
     await adminDb.collection('usuarios').doc(uid).update(body)
