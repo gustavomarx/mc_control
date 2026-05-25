@@ -1,10 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
+import { useAuth } from '@/contexts/AuthContext'
+
+const ROTAS_ACESSIVEIS = ['/mensagens', '/tarefas', '/agenda', '/crm', '/comissoes', '/caixa', '/home']
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { loading, usuario, perfil, podeAcessar } = useAuth()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (loading || !usuario || perfil === 'admin') return
+    if (podeAcessar(pathname)) return
+    const primeira = ROTAS_ACESSIVEIS.find(r => podeAcessar(r))
+    router.replace(primeira ?? '/mensagens')
+  }, [loading, usuario, perfil, pathname, podeAcessar, router])
 
   return (
     <div className="flex overflow-hidden" style={{ height: '100dvh' }}>

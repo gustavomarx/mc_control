@@ -30,7 +30,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
-  const { usuario, perfil, logout } = useAuth()
+  const { usuario, perfil, loading, logout } = useAuth()
 
   function NavLink({ href, label }: { href: string; label: string }) {
     const active = pathname === href || pathname.startsWith(href + '/')
@@ -97,6 +97,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
     boxShadow: '2px 0 12px rgba(74,18,40,.35)',
   }
 
+  // Enquanto auth carrega, mostra só a logo (evita flash do nav admin)
+  if (loading) {
+    return (
+      <aside style={sidebarStyle}>
+        <SidebarLogo onClose={onClose} />
+      </aside>
+    )
+  }
+
   if (perfil === 'atendente') {
     const p = usuario?.permissoes
     const topo = p?.mensagens ? [{ href: '/mensagens', label: 'Mensagens' }] : []
@@ -113,6 +122,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
       <aside style={sidebarStyle}>
         <SidebarLogo onClose={onClose} />
         <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {topo.length === 0 && operacional.length === 0 && financeiro.length === 0 && (
+            <p style={{ padding: '0 16px', fontSize: 12, color: 'rgba(232,196,168,.35)', fontFamily: "'Jost', sans-serif" }}>
+              Nenhum módulo habilitado.
+            </p>
+          )}
           {topo.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {topo.map(item => <NavLink key={item.href} {...item} />)}
