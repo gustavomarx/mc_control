@@ -6,7 +6,7 @@ import {
   doc, setDoc, getDoc, Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { AgendaAvec } from '@/types'
+import type { AgendaAvec, FaturamentoRealDia } from '@/types'
 
 interface MetaAgenda {
   metaSemanal: number
@@ -25,6 +25,8 @@ export function useAgenda() {
   const [tabela, setTabela]             = useState<TabelaInfo>({
     servicos: {}, totalServicos: 0, atualizadoEm: null,
   })
+  const [faturamentoReal, setFaturamentoReal] = useState<Record<string, FaturamentoRealDia>>({})
+  const [uploadFaturamentoReal, setUploadFaturamentoReal] = useState<Timestamp | null>(null)
   const [loading, setLoading]           = useState(true)
   const [loadingTabela, setLoadingTabela] = useState(true)
 
@@ -46,6 +48,24 @@ export function useAgenda() {
         setMetaSemanal(data.metaSemanal)
       }
     })
+  }, [])
+
+  // ── Faturamento real (0208) ─────────────────────────────────
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'faturamento_real'), snap => {
+      const merged: Record<string, FaturamentoRealDia> = {}
+      let latest: Timestamp | null = null
+      for (const d of snap.docs) {
+        const data = d.data()
+        Object.assign(merged, data.porDia ?? {})
+        if (data.uploadEm && (!latest || data.uploadEm.toMillis() > latest.toMillis())) {
+          latest = data.uploadEm as Timestamp
+        }
+      }
+      setFaturamentoReal(merged)
+      setUploadFaturamentoReal(latest)
+    })
+    return unsub
   }, [])
 
   // ── Tabela de preços ────────────────────────────────────────
@@ -103,9 +123,27 @@ export function useAgenda() {
     setTabela({ servicos, totalServicos: Object.keys(servicos).length, atualizadoEm: agora })
   }, [])
 
+  const salvarFaturamentoReal = useCallback(async (resultado: {
+    id: string; mes: number; ano: number
+    dias: { data: string; faturado: number; comandas: number }[]
+  }) => {
+    const porDia: Record<string, FaturamentoRealDia> = {}
+    for (const d of resultado.dias) {
+      porDia[d.data] = { faturado: d.faturado, comandas: d.comandas }
+    }
+    await setDoc(doc(db, 'faturamento_real', resultado.id), {
+      id: resultado.id,
+      mes: resultado.mes,
+      ano: resultado.ano,
+      porDia,
+      uploadEm: Timestamp.now(),
+    })
+  }, [])
+
   return {
     agendaAtual, historico, metaSemanal, loading,
     tabela, loadingTabela,
-    salvarAgenda, salvarMeta, salvarTabelaPrecos,
+    faturamentoReal, uploadFaturamentoReal,
+    salvarAgenda, salvarMeta, salvarTabelaPrecos, salvarFaturamentoReal,
   }
 }

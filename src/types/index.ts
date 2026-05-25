@@ -386,6 +386,21 @@ export interface CaixaFormas {
   dinheiroDepositadoEm?: Timestamp
 }
 
+// ── Faturamento Real (relatório 0208) ─────────────────────────────────────────
+
+export interface FaturamentoRealDia {
+  faturado: number
+  comandas: number
+}
+
+export interface FaturamentoRealMes {
+  id: string   // "YYYY-MM"
+  mes: number
+  ano: number
+  porDia: Record<string, FaturamentoRealDia>   // YYYY-MM-DD → dados
+  uploadEm: Timestamp
+}
+
 // ── Mensagens ─────────────────────────────────────────────────────────────────
 
 export type TipoTemplate = 'lote' | 'individual' | 'ambos'

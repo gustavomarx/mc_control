@@ -23,6 +23,7 @@ import type {
   ContaPagar,
   Profissional,
   FaturamentoAvec,
+  FaturamentoRealMes,
   DreMensal,
   DreConfig,
   Categoria,
@@ -157,6 +158,15 @@ export async function updateProfissional(id: string, data: Partial<Profissional>
 export async function getFaturamentoAvec(mes: number, ano: number): Promise<FaturamentoAvec | null> {
   const snap = await getDoc(doc(db, 'faturamento_avec', `${ano}-${String(mes).padStart(2, '0')}`))
   return snap.exists() ? (snap.data() as FaturamentoAvec) : null
+}
+
+// ── Faturamento Real (0208) ───────────────────────────────────────────────────
+
+export async function setFaturamentoReal(data: Omit<FaturamentoRealMes, 'uploadEm'>) {
+  await setDoc(doc(db, 'faturamento_real', data.id), {
+    ...data,
+    uploadEm: Timestamp.now(),
+  })
 }
 
 export async function setFaturamentoAvec(data: Omit<FaturamentoAvec, 'uploadEm'>, usuarioId: string) {

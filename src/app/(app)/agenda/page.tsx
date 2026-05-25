@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { useAgenda } from '@/hooks/useAgenda'
 import { parseAgendaAvec } from '@/lib/parse-agenda'
 import { parseTabelaPrecos } from '@/lib/parse-tabela-precos'
-import type { AgendaAvec, AgendamentoAvec } from '@/types'
+import type { AgendaAvec, AgendamentoAvec, FaturamentoRealDia } from '@/types'
 
 const DIAS_PT: Record<number, string> = { 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb', 0: 'Dom' }
 const AVEC_URL = 'https://admin.avec.beauty/admin/relatorio/0051'
@@ -141,9 +141,10 @@ interface PainelAgendaProps {
   meta: number
   tabela: Record<string, number>
   temTabela: boolean
+  faturamentoReal: Record<string, FaturamentoRealDia>
 }
 
-function PainelAgenda({ agenda, meta, tabela, temTabela }: PainelAgendaProps) {
+function PainelAgenda({ agenda, meta, tabela, temTabela, faturamentoReal }: PainelAgendaProps) {
   const [expandirServicos, setExpandirServicos] = useState(false)
   const [expandirSemPreco, setExpandirSemPreco] = useState(false)
 
@@ -183,41 +184,103 @@ function PainelAgenda({ agenda, meta, tabela, temTabela }: PainelAgendaProps) {
         <p className={`text-sm font-medium ${frase.cor}`}>{frase.texto}</p>
       </div>
 
-      {/* Estimativa de faturamento */}
+      {/* Estimativa vs Realizado */}
       {temTabela && estimativas && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Estimativa de faturamento</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {estimativas.comPreco} agendamento{estimativas.comPreco !== 1 ? 's' : ''} com preço mapeado
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-bold text-emerald-600">{fmt(estimativas.total)}</p>
-              <p className="text-xs text-gray-400">estimativa da semana</p>
-            </div>
-          </div>
+          {/* Header com totais */}
+          {(() => {
+            const totalReal = dias.reduce((s, d) => s + (faturamentoReal[d]?.faturado ?? 0), 0)
+            const totalEst  = estimativas.total
+            const temReal   = totalReal > 0
+            const pctTotal  = temReal && totalEst > 0
+              ? ((totalReal - totalEst) / totalEst) * 100
+              : null
 
-          {/* Grid de estimativa por dia */}
+            return (
+              <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {temReal ? 'Estimado vs Realizado' : 'Estimativa de faturamento'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {estimativas.comPreco} agendamento{estimativas.comPreco !== 1 ? 's' : ''} com preço mapeado
+                  </p>
+                </div>
+                <div className="flex gap-4">
+                  <div className="text-right">
+                    <p className="text-base font-bold text-emerald-600">{fmt(totalEst)}</p>
+                    <p className="text-xs text-gray-400">estimativa</p>
+                  </div>
+                  {temReal && (
+                    <div className="text-right">
+                      <p className="text-base font-bold text-gray-900">{fmt(totalReal)}</p>
+                      <div className="flex items-center justify-end gap-1">
+                        <p className="text-xs text-gray-400">realizado</p>
+                        {pctTotal !== null && (
+                          <span className={`text-xs font-semibold ${pctTotal >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {pctTotal >= 0 ? '+' : ''}{pctTotal.toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Grid por dia */}
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {dias.map(dataKey => {
-              const dow = new Date(dataKey + 'T12:00:00').getDay()
-              const valor = estimativas.porDia[dataKey]
+              const dow  = new Date(dataKey + 'T12:00:00').getDay()
+              const est  = estimativas.porDia[dataKey]
+              const real = faturamentoReal[dataKey]
+              const pct  = est && real
+                ? ((real.faturado - est) / est) * 100
+                : null
+
               return (
-                <div key={dataKey} className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">{DIAS_PT[dow]}</p>
-                  {valor !== undefined ? (
-                    <p className="text-sm font-bold text-emerald-800">{fmtK(valor)}</p>
+                <div key={dataKey} className={`rounded-xl p-3 text-center border ${real ? 'bg-white border-gray-200' : 'bg-emerald-50 border-emerald-100'}`}>
+                  <p className="text-xs font-semibold text-gray-600 mb-1">{DIAS_PT[dow]}</p>
+
+                  {/* Estimativa */}
+                  {est !== undefined ? (
+                    <p className="text-xs text-emerald-600">{fmtK(est)}</p>
                   ) : (
-                    <p className="text-sm font-bold text-gray-300">—</p>
+                    <p className="text-xs text-gray-300">—</p>
+                  )}
+
+                  {/* Realizado */}
+                  {real ? (
+                    <>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{fmtK(real.faturado)}</p>
+                      {pct !== null && (
+                        <span className={`text-[10px] font-bold ${pct >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {pct >= 0 ? '+' : ''}{pct.toFixed(0)}%
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-300 mt-1">–</p>
                   )}
                 </div>
               )
             })}
           </div>
 
-          {/* Alertas de serviços sem preço */}
+          {/* Legenda */}
+          {dias.some(d => faturamentoReal[d]) && (
+            <div className="flex gap-4 mt-3">
+              <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />estimativa
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                <span className="w-2 h-2 rounded-full bg-gray-400 shrink-0" />realizado
+              </span>
+            </div>
+          )}
+
+          {/* Alertas sem preço */}
           {estimativas.semPreco > 0 && (
             <div className="mt-3">
               <button
@@ -451,6 +514,7 @@ export default function AgendaPage() {
   const {
     agendaAtual, historico, metaSemanal, loading,
     tabela, loadingTabela,
+    faturamentoReal,
     salvarAgenda, salvarMeta, salvarTabelaPrecos,
   } = useAgenda()
 
@@ -623,6 +687,7 @@ export default function AgendaPage() {
             meta={metaSemanal}
             tabela={tabela.servicos}
             temTabela={temTabela}
+            faturamentoReal={faturamentoReal}
           />
         ) : (
           <div

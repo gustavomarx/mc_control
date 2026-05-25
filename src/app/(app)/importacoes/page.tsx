@@ -11,6 +11,7 @@ import { parseAgendaAvec } from '@/lib/parse-agenda'
 import { parseComissoes } from '@/lib/parse-comissoes'
 import { parseCaixa } from '@/lib/parse-caixa'
 import { parseTabelaPrecos } from '@/lib/parse-tabela-precos'
+import { parseFaturamentoReal } from '@/lib/parse-faturamento-real'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -282,7 +283,7 @@ function useToast() {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ImportacoesPage() {
-  const { agendaAtual, tabela, salvarAgenda, salvarTabelaPrecos } = useAgenda()
+  const { agendaAtual, tabela, uploadFaturamentoReal, salvarAgenda, salvarTabelaPrecos, salvarFaturamentoReal } = useAgenda()
   const { atual: comissoesAtual, salvar: salvarComissoes } = useComissoes()
   const { atual: caixaAtual, salvar: salvarCaixa } = useCaixa()
   const { uploadInfoAniv, uploadInfo0051, uploadAniversariantes, uploadAgenda0051 } = useCrm()
@@ -293,6 +294,7 @@ export default function ImportacoesPage() {
   const [loadingComissoes, setLoadingComissoes] = useState(false)
   const [loadingCaixa, setLoadingCaixa] = useState(false)
   const [loadingTabela, setLoadingTabela] = useState(false)
+  const [loadingFatReal, setLoadingFatReal] = useState(false)
 
   // Desbloqueios manuais (keys desbloqueadas pelo usuário nesta sessão)
   const [desbloqueados, setDesbloqueados] = useState<Set<string>>(new Set())
@@ -420,6 +422,20 @@ export default function ImportacoesPage() {
     mostrar('Caixa importado com sucesso')
   }
 
+  async function handleFaturamentoReal(file: File) {
+    setLoadingFatReal(true)
+    try {
+      const resultado = await parseFaturamentoReal(file)
+      await salvarFaturamentoReal(resultado)
+      mostrar(`Faturamento real importado — ${resultado.dias.length} dias (${String(resultado.mes).padStart(2, '0')}/${resultado.ano})`)
+    } catch (e) {
+      console.error(e)
+      alert(e instanceof Error ? e.message : 'Erro ao processar o relatório 0208.')
+    } finally {
+      setLoadingFatReal(false)
+    }
+  }
+
   async function handleTabela(file: File) {
     setLoadingTabela(true)
     try {
@@ -502,6 +518,18 @@ export default function ImportacoesPage() {
       acceptLabel: 'CSV / XLSX / XLS',
       loading: loadingTabela,
       onFile: handleTabela,
+    },
+    {
+      key: 'faturamento_real',
+      numero: '0208',
+      titulo: 'Faturamento Real por Dia',
+      descricao: 'Compara o faturamento realizado com a estimativa na Agenda',
+      avecUrl: 'https://admin.avec.beauty/admin/relatorio/0208',
+      ultimaAtualizacao: uploadFaturamentoReal ?? null,
+      accept: '.xlsx,.xls',
+      acceptLabel: 'XLSX / XLS',
+      loading: loadingFatReal,
+      onFile: handleFaturamentoReal,
     },
   ].sort((a, b) => {
     const ta = a.ultimaAtualizacao?.toMillis() ?? 0
