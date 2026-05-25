@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout() {
     localStorage.removeItem(REMEMBER_KEY)
     await signOut(auth)
+    window.location.replace('/login')
   }
 
   return (

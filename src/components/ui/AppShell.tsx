@@ -16,15 +16,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   podeAcessarRef.current = podeAcessar
 
   useEffect(() => {
-    if (loading) return
-    if (!usuario) {
-      router.replace('/login')
-      return
-    }
-    if (perfil === 'admin') return
+    if (loading || !usuario || perfil === 'admin') return
     if (podeAcessarRef.current(pathname)) return
     const primeira = ROTAS_ACESSIVEIS.find(r => podeAcessarRef.current(r))
-    router.replace(primeira ?? '/login')
+    if (primeira) router.replace(primeira)
   }, [loading, usuario, perfil, pathname, router])
 
   return (
