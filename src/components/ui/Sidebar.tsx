@@ -97,8 +97,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
     boxShadow: '2px 0 12px rgba(74,18,40,.35)',
   }
 
-  // Enquanto auth carrega, mostra só a logo (evita flash do nav admin)
-  if (loading) {
+  // Enquanto auth carrega ou usuário não está autenticado, mostra só a logo
+  // (evita flash do nav admin durante login/logout)
+  if (loading || !perfil) {
     return (
       <aside style={sidebarStyle}>
         <SidebarLogo onClose={onClose} />
