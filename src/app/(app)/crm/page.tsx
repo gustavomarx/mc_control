@@ -82,6 +82,7 @@ export default function CrmPage() {
   const [uploadingAniv, setUploadingAniv] = useState(false)
   const [uploading0051, setUploading0051] = useState(false)
   const [diasMinimos, setDiasMinimos] = useState(21)
+  const [diasMaximos, setDiasMaximos] = useState(90)
 
   const inputAnivRef = useRef<HTMLInputElement>(null)
   const inputAgendaRef = useRef<HTMLInputElement>(null)
@@ -99,10 +100,9 @@ export default function CrmPage() {
   }
 
   function gerarArquivoMensagens() {
-    const lista = clientesFiltrados.filter(c => c.diasSemRetorno >= diasMinimos)
-    if (lista.length === 0) return
+    if (clientesFiltrados.length === 0) return
 
-    const dados = lista.map(c => ({ cliente: c.nome, celular: c.celular, status: 'Recuperacao' }))
+    const dados = clientesFiltrados.map(c => ({ cliente: c.nome, celular: c.celular, status: 'Recuperacao' }))
     const ws = XLSX.utils.json_to_sheet(dados)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recuperação')
@@ -110,7 +110,7 @@ export default function CrmPage() {
     const segmento = abaRec === 'modelos' ? 'modelos' : abaRec === 'clientes' ? 'clientes' : 'todos'
     const hoje = new Date()
     const data = `${String(hoje.getDate()).padStart(2, '0')}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${hoje.getFullYear()}`
-    XLSX.writeFile(wb, `recuperacao_${segmento}_${diasMinimos}d_${data}.xlsx`)
+    XLSX.writeFile(wb, `recuperacao_${segmento}_${diasMinimos}-${diasMaximos}d_${data}.xlsx`)
   }
 
   async function handleUpload0051(file: File) {
@@ -139,8 +139,10 @@ export default function CrmPage() {
     // Filtro secundário de contato
     if (filtroRec === 'nao_contatadas') lista = lista.filter(c => c.status === 'nao_contatada')
     if (filtroRec === 'contatadas') lista = lista.filter(c => c.status === 'contatada')
+    // Filtro de período (dias sem retorno)
+    lista = lista.filter(c => c.diasSemRetorno >= diasMinimos && c.diasSemRetorno <= diasMaximos)
     return lista
-  }, [clientes, filtroRec, abaRec])
+  }, [clientes, filtroRec, abaRec, diasMinimos, diasMaximos])
 
   const totalNaoContatadas = aniversariantes.filter(c => c.status === 'nao_contatada').length
   const totalNaoContatadasRec = clientes.filter(c => c.status === 'nao_contatada').length
@@ -370,29 +372,37 @@ export default function CrmPage() {
             </div>
 
             {/* Gerador de arquivo para mensagens */}
-            {clientesFiltrados.length > 0 && (
-              <div className="flex items-center gap-3 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-3">
-                <span className="text-xs text-gray-600 shrink-0">Gerar arquivo a partir de</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={diasMinimos}
-                  onChange={e => setDiasMinimos(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <span className="text-xs text-gray-600 shrink-0">dias sem retorno</span>
-                <span className="text-xs text-gray-400 shrink-0">
-                  ({clientesFiltrados.filter(c => c.diasSemRetorno >= diasMinimos).length} clientes)
-                </span>
-                <button
-                  onClick={gerarArquivoMensagens}
-                  disabled={clientesFiltrados.filter(c => c.diasSemRetorno >= diasMinimos).length === 0}
-                  className="ml-auto px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg disabled:opacity-40 transition-colors shrink-0"
-                >
-                  ⬇ Baixar XLSX
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-3 flex-wrap">
+              <span className="text-xs text-gray-600 shrink-0">Período:</span>
+              <input
+                type="number"
+                min={1}
+                value={diasMinimos}
+                onChange={e => {
+                  const v = Math.max(1, parseInt(e.target.value) || 1)
+                  setDiasMinimos(v)
+                  if (v >= diasMaximos) setDiasMaximos(v + 1)
+                }}
+                className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <span className="text-xs text-gray-500 shrink-0">até</span>
+              <input
+                type="number"
+                min={diasMinimos + 1}
+                value={diasMaximos}
+                onChange={e => setDiasMaximos(Math.max(diasMinimos + 1, parseInt(e.target.value) || diasMinimos + 1))}
+                className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <span className="text-xs text-gray-600 shrink-0">dias sem retorno</span>
+              <span className="text-xs text-gray-400 shrink-0">({clientesFiltrados.length} clientes)</span>
+              <button
+                onClick={gerarArquivoMensagens}
+                disabled={clientesFiltrados.length === 0}
+                className="ml-auto px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg disabled:opacity-40 transition-colors shrink-0"
+              >
+                ⬇ Baixar XLSX
+              </button>
+            </div>
 
             {/* Seletor de template padrão */}
             <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-2.5">
