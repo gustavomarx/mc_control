@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import { useAuth } from '@/contexts/AuthContext'
@@ -12,13 +12,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { loading, usuario, perfil, podeAcessar } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const podeAcessarRef = useRef(podeAcessar)
+  podeAcessarRef.current = podeAcessar
 
   useEffect(() => {
-    if (loading || !usuario || perfil === 'admin') return
-    if (podeAcessar(pathname)) return
-    const primeira = ROTAS_ACESSIVEIS.find(r => podeAcessar(r))
-    router.replace(primeira ?? '/mensagens')
-  }, [loading, usuario, perfil, pathname, podeAcessar, router])
+    if (loading) return
+    if (!usuario) {
+      router.replace('/login')
+      return
+    }
+    if (perfil === 'admin') return
+    if (podeAcessarRef.current(pathname)) return
+    const primeira = ROTAS_ACESSIVEIS.find(r => podeAcessarRef.current(r))
+    router.replace(primeira ?? '/login')
+  }, [loading, usuario, perfil, pathname, router])
 
   return (
     <div className="flex overflow-hidden" style={{ height: '100dvh' }}>
