@@ -4,8 +4,21 @@ const STATUS_ATIVOS = ['Agendado', 'Confirmado', 'Aguardando', 'Em Atendimento',
 
 function parseDataBR(str: string): Date | null {
   if (!str) return null
-  const partes = str.includes('/') ? str.split('/') : str.split('-').reverse()
+  if (str.includes('/')) {
+    // dd/mm/yyyy
+    const [dia, mes, ano] = str.split('/').map(Number)
+    if (!dia || !mes || !ano) return null
+    return new Date(ano, mes - 1, dia)
+  }
+  const partes = str.split('-')
   if (partes.length < 3) return null
+  if (partes[0].length === 4) {
+    // yyyy-mm-dd (ISO — gerado pelo getCol ao receber Date object do XLSX)
+    const [ano, mes, dia] = partes.map(Number)
+    if (!ano || !mes || !dia) return null
+    return new Date(ano, mes - 1, dia)
+  }
+  // dd-mm-yyyy
   const [dia, mes, ano] = partes.map(Number)
   if (!dia || !mes || !ano) return null
   return new Date(ano, mes - 1, dia)
@@ -59,10 +72,20 @@ export interface Agenda0051Result {
 }
 
 // Case-insensitive field lookup: tries multiple column name variants
-function getCol(row: Record<string, string>, ...names: string[]): string {
+// Handles Date objects from XLSX cellDates:true converting them to ISO "YYYY-MM-DD"
+function getCol(row: Record<string, unknown>, ...names: string[]): string {
   const normalized: Record<string, string> = {}
   for (const [k, v] of Object.entries(row)) {
-    normalized[k.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')] = String(v)
+    const key = k.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    if (v instanceof Date) {
+      // Use UTC methods to avoid timezone shifting the date (XLSX stores as UTC midnight)
+      const yyyy = v.getUTCFullYear()
+      const mm = String(v.getUTCMonth() + 1).padStart(2, '0')
+      const dd = String(v.getUTCDate()).padStart(2, '0')
+      normalized[key] = `${yyyy}-${mm}-${dd}`
+    } else {
+      normalized[key] = String(v)
+    }
   }
   for (const name of names) {
     const key = name.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -75,7 +98,7 @@ export async function parseAgenda0051(file: File): Promise<Agenda0051Result> {
   const buffer = await file.arrayBuffer()
   const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
   const ws = wb.Sheets[wb.SheetNames[0]]
-  const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
 
   const hoje = new Date()
   hoje.setHours(0, 0, 0, 0)

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  collection, onSnapshot, doc, setDoc, updateDoc, Timestamp, getDoc, getDocs,
+  collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc, getDocs,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { AniversarianteStatus, RecuperacaoStatus, StatusAniversariante, StatusRecuperacao, MensagemTemplate } from '@/types'
@@ -68,7 +68,17 @@ export function useCrm() {
   const uploadAgenda0051 = useCallback(async (file: File) => {
     const { recuperacao } = await parseAgenda0051(file)
     const agora = Timestamp.now()
+    const novosIds = new Set(recuperacao.map(c => c.id))
 
+    // Busca docs existentes para deletar quem saiu da lista (agendou ou não precisa mais)
+    const existentes = await getDocs(collection(db, 'recuperacao_status'))
+    await Promise.all(
+      existentes.docs
+        .filter(d => !novosIds.has(d.id))
+        .map(d => deleteDoc(d.ref))
+    )
+
+    // Adiciona/atualiza quem está na nova lista
     await Promise.all(
       recuperacao.map(c =>
         setDoc(doc(db, 'recuperacao_status', c.id), {
