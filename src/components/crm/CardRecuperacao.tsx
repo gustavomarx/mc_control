@@ -20,14 +20,12 @@ function badgeDias(dias: number): { label: string; cls: string } {
 interface Props {
   cliente: RecuperacaoStatus
   onAtualizarStatus: (celular: string, status: StatusRecuperacao) => Promise<void>
-  onExcluir: (id: string) => Promise<void>
   templateConteudo?: string
 }
 
-export default function CardRecuperacao({ cliente, onAtualizarStatus, onExcluir, templateConteudo }: Props) {
+export default function CardRecuperacao({ cliente, onAtualizarStatus, templateConteudo }: Props) {
   const [copiado, setCopiado] = useState(false)
   const [tooltipVis, setTooltipVis] = useState(false)
-  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
 
   function copiarMensagem() {
     const msg = templateConteudo
@@ -96,33 +94,17 @@ export default function CardRecuperacao({ cliente, onAtualizarStatus, onExcluir,
         </a>
       </div>
 
-      <div className="mt-3 flex gap-2 items-center">
+      <div className="mt-3">
         <select
           value={cliente.status}
           onChange={e => onAtualizarStatus(cliente.celular, e.target.value as StatusRecuperacao)}
-          className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
+          className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
         >
           <option value="nao_contatada">Não contatada</option>
           <option value="contatada">Contatada</option>
           <option value="agendou">Agendou</option>
           <option value="nao_quer_mais">Não quer mais</option>
         </select>
-        {confirmandoExclusao ? (
-          <button
-            onClick={() => onExcluir(cliente.id)}
-            className="text-xs px-2 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shrink-0"
-          >
-            Confirmar
-          </button>
-        ) : (
-          <button
-            onClick={() => setConfirmandoExclusao(true)}
-            title="Remover da lista"
-            className="text-xs px-2 py-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-          >
-            ✕
-          </button>
-        )}
       </div>
     </div>
   )

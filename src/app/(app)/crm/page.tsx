@@ -68,7 +68,7 @@ export default function CrmPage() {
     uploadInfoAniv, uploadInfo0051,
     templates, templateAnivId, templateRecId,
     uploadAniversariantes, uploadAgenda0051,
-    atualizarStatusAniv, atualizarStatusRec, excluirClienteRec,
+    atualizarStatusAniv, atualizarStatusRec,
     salvarConfigTemplate,
   } = useCrm()
 
@@ -83,6 +83,8 @@ export default function CrmPage() {
   const [uploading0051, setUploading0051] = useState(false)
   const [diasMinimos, setDiasMinimos] = useState(21)
   const [diasMaximos, setDiasMaximos] = useState(90)
+  const [inputMin, setInputMin] = useState('21')
+  const [inputMax, setInputMax] = useState('90')
 
   const inputAnivRef = useRef<HTMLInputElement>(null)
   const inputAgendaRef = useRef<HTMLInputElement>(null)
@@ -375,23 +377,30 @@ export default function CrmPage() {
             <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-3 flex-wrap">
               <span className="text-xs text-gray-600 shrink-0">Período:</span>
               <input
-                type="number"
-                min={1}
-                value={diasMinimos}
-                onChange={e => {
-                  const v = Math.max(1, parseInt(e.target.value) || 1)
+                type="text"
+                inputMode="numeric"
+                value={inputMin}
+                onChange={e => setInputMin(e.target.value.replace(/\D/g, ''))}
+                onBlur={() => {
+                  const v = Math.max(1, parseInt(inputMin) || 1)
                   setDiasMinimos(v)
-                  if (v >= diasMaximos) setDiasMaximos(v + 1)
+                  setInputMin(String(v))
+                  if (v >= diasMaximos) { setDiasMaximos(v + 1); setInputMax(String(v + 1)) }
                 }}
-                className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-14 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <span className="text-xs text-gray-500 shrink-0">até</span>
               <input
-                type="number"
-                min={diasMinimos + 1}
-                value={diasMaximos}
-                onChange={e => setDiasMaximos(Math.max(diasMinimos + 1, parseInt(e.target.value) || diasMinimos + 1))}
-                className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                type="text"
+                inputMode="numeric"
+                value={inputMax}
+                onChange={e => setInputMax(e.target.value.replace(/\D/g, ''))}
+                onBlur={() => {
+                  const v = Math.max(diasMinimos + 1, parseInt(inputMax) || diasMinimos + 1)
+                  setDiasMaximos(v)
+                  setInputMax(String(v))
+                }}
+                className="w-14 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <span className="text-xs text-gray-600 shrink-0">dias sem retorno</span>
               <span className="text-xs text-gray-400 shrink-0">({clientesFiltrados.length} clientes)</span>
@@ -436,7 +445,6 @@ export default function CrmPage() {
                     key={c.id}
                     cliente={c}
                     onAtualizarStatus={atualizarStatusRec}
-                    onExcluir={excluirClienteRec}
                     templateConteudo={templateRecConteudo}
                   />
                 ))}
