@@ -188,25 +188,6 @@ function SidebarLogo({ onClose }: { onClose?: () => void }) {
       textAlign: 'center',
       position: 'relative',
     }}>
-      {/* Botão fechar — só no mobile */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="lg:hidden"
-          style={{
-            position: 'absolute', top: 12, right: 12,
-            background: 'none', border: 'none',
-            padding: 6, cursor: 'pointer',
-            color: 'rgba(232,196,168,.45)',
-            display: 'flex', alignItems: 'center',
-          }}
-          aria-label="Fechar menu"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        </button>
-      )}
 
       {/* Logo */}
       <img
