@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useAgenda } from '@/hooks/useAgenda'
 import { parseAgendaAvec } from '@/lib/parse-agenda'
 import { parseTabelaPrecos } from '@/lib/parse-tabela-precos'
+import { parseFaturamentoReal } from '@/lib/parse-faturamento-real'
 import type { AgendaAvec, AgendamentoAvec, FaturamentoRealDia } from '@/types'
 
 const DIAS_PT: Record<number, string> = { 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb', 0: 'Dom' }
@@ -514,8 +515,8 @@ export default function AgendaPage() {
   const {
     agendaAtual, historico, metaSemanal, loading,
     tabela, loadingTabela,
-    faturamentoReal,
-    salvarAgenda, salvarMeta, salvarTabelaPrecos,
+    faturamentoReal, uploadFaturamentoReal,
+    salvarAgenda, salvarMeta, salvarTabelaPrecos, salvarFaturamentoReal,
   } = useAgenda()
 
   const [semanaVis, setSemanaVis]         = useState<string | null>(null)
@@ -523,9 +524,11 @@ export default function AgendaPage() {
   const [metaInput, setMetaInput]         = useState(String(metaSemanal))
   const [uploading, setUploading]         = useState(false)
   const [uploadingTabela, setUploadingTabela] = useState(false)
+  const [uploadingFatReal, setUploadingFatReal] = useState(false)
 
   const inputRef       = useRef<HTMLInputElement>(null)
   const inputTabelaRef = useRef<HTMLInputElement>(null)
+  const inputFatRealRef = useRef<HTMLInputElement>(null)
 
   const agendaExibida = semanaVis
     ? historico.find(h => h.semanaKey === semanaVis) ?? agendaAtual
@@ -566,6 +569,21 @@ export default function AgendaPage() {
       alert('Erro ao processar a tabela de preços.')
     } finally {
       setUploadingTabela(false)
+    }
+  }
+
+  async function handleFatRealFile(file: File) {
+    if (!file) return
+    setUploadingFatReal(true)
+    try {
+      const resultado = await parseFaturamentoReal(file)
+      await salvarFaturamentoReal(resultado)
+      alert(`Faturamento real importado: ${resultado.dias.length} dias de ${resultado.mes}/${resultado.ano}.`)
+    } catch (e) {
+      console.error(e)
+      alert('Erro ao processar o arquivo. Verifique se é o relatório 0088 do AVEC.')
+    } finally {
+      setUploadingFatReal(false)
     }
   }
 
@@ -625,6 +643,28 @@ export default function AgendaPage() {
             <input
               ref={inputTabelaRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) handleTabelaFile(f); e.target.value = '' }}
+            />
+            <a
+              href="https://admin.avec.beauty/admin/relatorio/0088"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-white transition-colors"
+            >
+              0088 ↗
+            </a>
+            <button
+              onClick={() => inputFatRealRef.current?.click()}
+              disabled={uploadingFatReal}
+              title={uploadFaturamentoReal
+                ? `Atualizado em ${uploadFaturamentoReal.toDate().toLocaleDateString('pt-BR')}`
+                : 'Sem faturamento real importado'}
+              className="px-3 py-2 text-sm border rounded-xl transition-colors disabled:opacity-50 border-gray-200 text-gray-600 hover:bg-white"
+            >
+              {uploadingFatReal ? 'Processando...' : uploadFaturamentoReal ? 'Fat. real ✓' : 'Fat. real (0088)'}
+            </button>
+            <input
+              ref={inputFatRealRef} type="file" accept=".xlsx,.xls" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFatRealFile(f); e.target.value = '' }}
             />
           </div>
         </div>

@@ -430,7 +430,7 @@ export default function ImportacoesPage() {
       mostrar(`Faturamento real importado — ${resultado.dias.length} dias (${String(resultado.mes).padStart(2, '0')}/${resultado.ano})`)
     } catch (e) {
       console.error(e)
-      alert(e instanceof Error ? e.message : 'Erro ao processar o relatório 0208.')
+      alert(e instanceof Error ? e.message : 'Erro ao processar o relatório 0088.')
     } finally {
       setLoadingFatReal(false)
     }
@@ -521,10 +521,10 @@ export default function ImportacoesPage() {
     },
     {
       key: 'faturamento_real',
-      numero: '0208',
+      numero: '0088',
       titulo: 'Faturamento Real por Dia',
       descricao: 'Compara o faturamento realizado com a estimativa na Agenda',
-      avecUrl: 'https://admin.avec.beauty/admin/relatorio/0208',
+      avecUrl: 'https://admin.avec.beauty/admin/relatorio/0088',
       ultimaAtualizacao: uploadFaturamentoReal ?? null,
       accept: '.xlsx,.xls',
       acceptLabel: 'XLSX / XLS',

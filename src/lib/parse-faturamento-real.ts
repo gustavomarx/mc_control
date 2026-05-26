@@ -59,7 +59,7 @@ export async function parseFaturamentoReal(file: File): Promise<ResultadoParseFa
   }
 
   if (dias.length === 0) {
-    throw new Error('Nenhum dado encontrado. Verifique se o arquivo é o relatório 0208 do AVEC.')
+    throw new Error('Nenhum dado encontrado. Verifique se o arquivo é o relatório 0088 do AVEC.')
   }
 
   const [anoStr, mesStr] = dias[0].data.split('-')
