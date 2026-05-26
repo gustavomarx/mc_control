@@ -68,7 +68,7 @@ export default function CrmPage() {
     uploadInfoAniv, uploadInfo0051,
     templates, templateAnivId, templateRecId,
     uploadAniversariantes, uploadAgenda0051,
-    atualizarStatusAniv, atualizarStatusRec,
+    atualizarStatusAniv, atualizarStatusRec, excluirClienteRec,
     salvarConfigTemplate,
   } = useCrm()
 
@@ -436,6 +436,7 @@ export default function CrmPage() {
                     key={c.id}
                     cliente={c}
                     onAtualizarStatus={atualizarStatusRec}
+                    onExcluir={excluirClienteRec}
                     templateConteudo={templateRecConteudo}
                   />
                 ))}

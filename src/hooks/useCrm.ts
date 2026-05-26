@@ -140,6 +140,10 @@ export function useCrm() {
     })
   }, [])
 
+  const excluirClienteRec = useCallback(async (id: string) => {
+    await deleteDoc(doc(db, 'recuperacao_status', id))
+  }, [])
+
   return {
     aniversariantes,
     clientes,
@@ -154,6 +158,7 @@ export function useCrm() {
     uploadAgenda0051,
     atualizarStatusAniv,
     atualizarStatusRec,
+    excluirClienteRec,
     salvarConfigTemplate,
   }
 }

@@ -123,7 +123,7 @@ export async function parseAgenda0051(file: File): Promise<Agenda0051Result> {
 
     const tel = normTel(getCol(row, 'Celular', 'Telefone', 'Tel', 'Fone', 'Celular/WhatsApp', 'WhatsApp').trim())
     const servico = getCol(row, 'Serviço', 'Servico', 'Serviço/Produto', 'Produto', 'Descrição', 'Descricao').trim()
-    const status = getCol(row, 'Status')
+    const status = getCol(row, 'Status').trim()
     const dataStr = getCol(row, 'Data Reserva', 'Data_Reserva', 'Data')
     const data = parseDataBR(dataStr)
 
