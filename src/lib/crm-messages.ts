@@ -20,3 +20,7 @@ export function normalizarCelular(celular: string): string {
 export function linkWhatsApp(celular: string): string {
   return `https://web.whatsapp.com/send?phone=55${normalizarCelular(celular)}`
 }
+
+export function linkWhatsAppComMensagem(celular: string, mensagem: string): string {
+  return `https://web.whatsapp.com/send?phone=55${normalizarCelular(celular)}&text=${encodeURIComponent(mensagem)}`
+}

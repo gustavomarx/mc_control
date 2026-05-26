@@ -20,12 +20,16 @@ function badgeDias(dias: number): { label: string; cls: string } {
 interface Props {
   cliente: RecuperacaoStatus
   onAtualizarStatus: (celular: string, status: StatusRecuperacao) => Promise<void>
+  onAtualizarObservacao: (celular: string, observacao: string) => Promise<void>
   templateConteudo?: string
 }
 
-export default function CardRecuperacao({ cliente, onAtualizarStatus, templateConteudo }: Props) {
+export default function CardRecuperacao({ cliente, onAtualizarStatus, onAtualizarObservacao, templateConteudo }: Props) {
   const [copiado, setCopiado] = useState(false)
   const [tooltipVis, setTooltipVis] = useState(false)
+  const [obsAberta, setObsAberta] = useState(false)
+  const [obsTexto, setObsTexto] = useState(cliente.observacao ?? '')
+  const [salvando, setSalvando] = useState(false)
 
   function copiarMensagem() {
     const msg = templateConteudo
@@ -36,8 +40,19 @@ export default function CardRecuperacao({ cliente, onAtualizarStatus, templateCo
     setTimeout(() => setCopiado(false), 2000)
   }
 
+  async function salvarObservacao() {
+    setSalvando(true)
+    try {
+      await onAtualizarObservacao(cliente.celular, obsTexto.trim())
+      setObsAberta(false)
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   const cfg = STATUS_CONFIG[cliente.status]
   const badge = badgeDias(cliente.diasSemRetorno)
+  const temObs = !!cliente.observacao?.trim()
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
@@ -59,6 +74,19 @@ export default function CardRecuperacao({ cliente, onAtualizarStatus, templateCo
                 )}
               </span>
             )}
+            <button
+              onClick={() => {
+                setObsTexto(cliente.observacao ?? '')
+                setObsAberta(v => !v)
+              }}
+              title={temObs ? cliente.observacao : 'Adicionar observação'}
+              className={`text-base leading-none transition-opacity ${temObs ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+            >
+              💬
+            </button>
+            {temObs && !obsAberta && (
+              <span className="text-xs text-gray-400 truncate max-w-[80px]">{cliente.observacao}</span>
+            )}
           </div>
           <p className="text-xs text-gray-400 mt-0.5">Última visita: {cliente.ultimaVisita}</p>
         </div>
@@ -71,6 +99,33 @@ export default function CardRecuperacao({ cliente, onAtualizarStatus, templateCo
           </span>
         </div>
       </div>
+
+      {obsAberta && (
+        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2">
+          <textarea
+            value={obsTexto}
+            onChange={e => setObsTexto(e.target.value)}
+            placeholder="Escreva uma observação sobre esta cliente..."
+            rows={2}
+            className="w-full text-xs bg-transparent resize-none focus:outline-none text-gray-700 placeholder-gray-400"
+          />
+          <div className="flex gap-2 mt-1.5 justify-end">
+            <button
+              onClick={() => setObsAberta(false)}
+              className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={salvarObservacao}
+              disabled={salvando}
+              className="text-xs px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg disabled:opacity-50 transition-colors"
+            >
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 mb-3">
         <p className="text-xs text-gray-500">{cliente.celular}</p>

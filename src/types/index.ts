@@ -336,6 +336,7 @@ export interface RecuperacaoStatus {
   email?: string
   isModelo: boolean
   alertaCancelamento?: string   // "Cancelou em DD/MM/YYYY" ou "Faltou em DD/MM/YYYY"
+  observacao?: string
   status: StatusRecuperacao
   atualizadoEm: Timestamp
 }

@@ -140,6 +140,10 @@ export function useCrm() {
     })
   }, [])
 
+  const atualizarObservacaoRec = useCallback(async (celular: string, observacao: string) => {
+    await updateDoc(doc(db, 'recuperacao_status', celular), { observacao })
+  }, [])
+
   const excluirClienteRec = useCallback(async (id: string) => {
     await deleteDoc(doc(db, 'recuperacao_status', id))
   }, [])
@@ -158,6 +162,7 @@ export function useCrm() {
     uploadAgenda0051,
     atualizarStatusAniv,
     atualizarStatusRec,
+    atualizarObservacaoRec,
     excluirClienteRec,
     salvarConfigTemplate,
   }
