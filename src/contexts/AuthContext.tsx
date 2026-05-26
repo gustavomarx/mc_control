@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
+import { onIdTokenChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getUsuario } from '@/lib/firestore'
 import type { Usuario, PerfilUsuario, NivelTarefas } from '@/types'
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken()
@@ -86,7 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem(REMEMBER_KEY)
     }
-    await signInWithEmailAndPassword(auth, email, password)
+    const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password)
+    const token = await firebaseUser.getIdToken()
+    const maxAge = rememberMe ? 2592000 : 3600
+    document.cookie = `firebase-token=${token}; path=/; max-age=${maxAge}; SameSite=Strict`
   }
 
   async function logout() {
