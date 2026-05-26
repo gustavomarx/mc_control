@@ -8,7 +8,7 @@ import CardRecuperacao from '@/components/crm/CardRecuperacao'
 import { periodoExportacao } from '@/lib/parse-agenda-cross'
 import type { AniversarianteStatus, StatusAniversariante, StatusRecuperacao } from '@/types'
 
-type AbaAniv = 'hoje' | 'semana' | 'mes'
+type AbaAniv = 'hoje' | 'semana' | 'mes' | 'periodo'
 type AbaRec = 'todos' | 'clientes' | 'modelos'
 type FiltroRec = 'todos' | 'nao_contatadas' | 'contatadas'
 
@@ -40,7 +40,32 @@ function parseDiaMes(dataNascimento: string): { dia: number; mes: number } | nul
   return { dia: parseInt(partes[0]), mes: parseInt(partes[1]) }
 }
 
-function filtrarAniversariantes(lista: AniversarianteStatus[], aba: AbaAniv): AniversarianteStatus[] {
+function toDateInputValue(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function filtrarPorPeriodo(lista: AniversarianteStatus[], inicio: string, fim: string): AniversarianteStatus[] {
+  if (!inicio || !fim) return lista
+  const [, iniM, iniD] = inicio.split('-').map(Number)
+  const [, fimM, fimD] = fim.split('-').map(Number)
+  const ini = iniM * 100 + iniD
+  const end = fimM * 100 + fimD
+  return lista.filter(c => {
+    const dm = parseDiaMes(c.dataNascimento)
+    if (!dm) return false
+    const val = dm.mes * 100 + dm.dia
+    return ini <= end ? val >= ini && val <= end : val >= ini || val <= end
+  })
+}
+
+function filtrarAniversariantes(
+  lista: AniversarianteStatus[],
+  aba: AbaAniv,
+  periodoInicio?: string,
+  periodoFim?: string,
+): AniversarianteStatus[] {
+  if (aba === 'periodo') return filtrarPorPeriodo(lista, periodoInicio ?? '', periodoFim ?? '')
+
   const { mes } = getMesAtual()
   const hoje = getDiaHoje()
   const segunda = getSegundaFeira()
@@ -76,6 +101,10 @@ export default function CrmPage() {
 
   const [aba, setAba] = useState<'aniversariantes' | 'recuperacao'>('aniversariantes')
   const [abaAniv, setAbaAniv] = useState<AbaAniv>('hoje')
+  const [periodoInicio, setPeriodoInicio] = useState(() => toDateInputValue(new Date()))
+  const [periodoFim, setPeriodoFim] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 30); return toDateInputValue(d)
+  })
   const [abaRec, setAbaRec] = useState<AbaRec>('todos')
   const [filtroRec, setFiltroRec] = useState<FiltroRec>('todos')
   const [soNaoContatadas, setSoNaoContatadas] = useState(false)
@@ -128,10 +157,10 @@ export default function CrmPage() {
   }
 
   const aniversariantesFiltrados = useMemo(() => {
-    let lista = filtrarAniversariantes(aniversariantes, abaAniv)
+    let lista = filtrarAniversariantes(aniversariantes, abaAniv, periodoInicio, periodoFim)
     if (soNaoContatadas) lista = lista.filter(c => c.status === 'nao_contatada')
     return lista
-  }, [aniversariantes, abaAniv, soNaoContatadas])
+  }, [aniversariantes, abaAniv, soNaoContatadas, periodoInicio, periodoFim])
 
   const clientesFiltrados = useMemo(() => {
     let lista = [...clientes].sort((a, b) => b.diasSemRetorno - a.diasSemRetorno)
@@ -210,6 +239,7 @@ export default function CrmPage() {
                   { v: 'hoje', label: 'Hoje' },
                   { v: 'semana', label: 'Esta semana' },
                   { v: 'mes', label: 'Este mês' },
+                  { v: 'periodo', label: 'Período' },
                 ] as const).map(({ v, label }) => (
                   <button
                     key={v}
@@ -233,6 +263,27 @@ export default function CrmPage() {
                 Só não contatadas {soNaoContatadas && `(${totalNaoContatadas})`}
               </button>
             </div>
+
+            {/* Seletor de período personalizado */}
+            {abaAniv === 'periodo' && (
+              <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-2.5 flex-wrap">
+                <span className="text-xs text-gray-500 shrink-0">De</span>
+                <input
+                  type="date"
+                  value={periodoInicio}
+                  onChange={e => setPeriodoInicio(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
+                />
+                <span className="text-xs text-gray-500 shrink-0">até</span>
+                <input
+                  type="date"
+                  value={periodoFim}
+                  onChange={e => setPeriodoFim(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
+                />
+                <span className="text-xs text-gray-400 shrink-0">({aniversariantesFiltrados.length} aniversariantes)</span>
+              </div>
+            )}
 
             {/* Seletor de template padrão */}
             <div className="flex items-center gap-2 mb-4 bg-white border border-gray-100 rounded-xl px-4 py-2.5">
