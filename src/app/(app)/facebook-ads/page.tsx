@@ -315,6 +315,19 @@ export default function FacebookAdsPage() {
               className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-white transition-colors disabled:opacity-40">
               ↻ Atualizar
             </button>
+            {selectedAccountId && (
+              <a
+                href={(() => {
+                  const id = selectedAccountId.replace('act_', '')
+                  return `https://business.facebook.com/billing_hub/accounts/details/?business_id=113059308505656&asset_id=${id}&payment_account_id=${id}&placement=ads_manager&entrypoint=ads_ecosystem_navigation_ads_billing_tool_plugin&payment_account_id_from_jsmodule=${id}`
+                })()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 text-xs border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+              >
+                + Recarregar conta
+              </a>
+            )}
             <button onClick={() => { setConfigToken(''); setConfigDefault(config?.defaultAccountId ?? ''); setShowConfig(true) }}
               className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-white transition-colors">
               ⚙ Configurar
