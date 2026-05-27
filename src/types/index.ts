@@ -511,8 +511,7 @@ export interface FbAdCreative {
   title?: string
   body?: string
   description?: string
-  image_url?: string
-  thumbnail_url?: string
+  image_url?: string   // full-res: link_data.picture > image_url > video thumbnail
   call_to_action?: string
 }
 

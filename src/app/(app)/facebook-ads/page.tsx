@@ -78,18 +78,18 @@ function MetricPill({ label, value }: { label: string; value: string }) {
 
 function AdCard({ ad }: { ad: FbAd }) {
   const c = ad.creative
-  const hasImage = !!(c.thumbnail_url || c.image_url)
+  const hasImage = !!c.image_url
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
       {/* Preview do criativo */}
       {hasImage && (
-        <div className="w-full h-36 bg-gray-100 overflow-hidden">
+        <div className="w-full bg-gray-100 overflow-hidden" style={{ aspectRatio: '4/5' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={c.thumbnail_url || c.image_url}
+            src={c.image_url}
             alt={c.title || ad.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />
         </div>

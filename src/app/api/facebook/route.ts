@@ -28,10 +28,16 @@ function parseCreative(c: Record<string, unknown>) {
     (link.call_to_action as Record<string, string>)?.type ??
     (video.call_to_action as Record<string, string>)?.type ?? ''
   ) as string
-  const image_url = (c.image_url ?? video.image_url ?? '') as string
-  const thumbnail_url = (c.thumbnail_url ?? '') as string
+  // Prioriza: picture (full-res) > image_url > video thumbnail > thumbnail_url
+  const image_url = (
+    link.picture ??
+    c.image_url ??
+    video.image_url ??
+    c.thumbnail_url ??
+    ''
+  ) as string
 
-  return { title, body, description, image_url, thumbnail_url, call_to_action: cta }
+  return { title, body, description, image_url, call_to_action: cta }
 }
 
 export async function GET(req: NextRequest) {
@@ -90,17 +96,23 @@ export async function GET(req: NextRequest) {
       if (data.error) return NextResponse.json({ error: data.error.message }, { status: 400 })
 
       const campaigns = data.data ?? []
-      const withInsights = await Promise.all(
-        campaigns.map(async (c: Record<string, string>) => {
-          try {
-            const ir = await fetch(`${FB_API}/${c.id}/insights?fields=spend,impressions,clicks,ctr,cpc&date_preset=${period}&access_token=${token}`)
-            const id = (await ir.json()).data?.[0] ?? {}
-            return { ...c, spend: id.spend ?? '0', impressions: id.impressions ?? '0', clicks: id.clicks ?? '0', ctr: id.ctr ?? '0', cpc: id.cpc ?? '0' }
-          } catch {
-            return { ...c, spend: '0', impressions: '0', clicks: '0', ctr: '0', cpc: '0' }
-          }
-        })
-      )
+
+      // Insights opcionais — se falhar (rate limit), retorna campanhas sem métricas
+      let insMap: Record<string, Record<string, string>> = {}
+      try {
+        const insRes = await fetch(
+          `${FB_API}/${accountId}/insights?fields=campaign_id,spend,impressions,clicks,ctr,cpc&date_preset=${period}&level=campaign&limit=100&access_token=${token}`
+        )
+        const insData = await insRes.json()
+        if (!insData.error) {
+          for (const row of (insData.data ?? [])) insMap[row.campaign_id] = row
+        }
+      } catch { /* ignora — retorna campanhas sem métricas */ }
+
+      const withInsights = campaigns.map((c: Record<string, string>) => {
+        const ins = insMap[c.id] ?? {}
+        return { ...c, spend: ins.spend ?? '0', impressions: ins.impressions ?? '0', clicks: ins.clicks ?? '0', ctr: ins.ctr ?? '0', cpc: ins.cpc ?? '0' }
+      })
       return NextResponse.json(withInsights)
     }
 
@@ -115,17 +127,23 @@ export async function GET(req: NextRequest) {
       if (data.error) return NextResponse.json({ error: data.error.message }, { status: 400 })
 
       const adsets = data.data ?? []
-      const withInsights = await Promise.all(
-        adsets.map(async (a: Record<string, string>) => {
-          try {
-            const ir = await fetch(`${FB_API}/${a.id}/insights?fields=spend,impressions,clicks,ctr,cpc&date_preset=${period}&access_token=${token}`)
-            const id = (await ir.json()).data?.[0] ?? {}
-            return { ...a, spend: id.spend ?? '0', impressions: id.impressions ?? '0', clicks: id.clicks ?? '0', ctr: id.ctr ?? '0', cpc: id.cpc ?? '0' }
-          } catch {
-            return { ...a, spend: '0', impressions: '0', clicks: '0', ctr: '0', cpc: '0' }
-          }
-        })
-      )
+
+      // Insights opcionais — se falhar (rate limit), retorna lista sem métricas
+      let insMap: Record<string, Record<string, string>> = {}
+      try {
+        const insRes = await fetch(
+          `${FB_API}/${campaignId}/insights?fields=adset_id,spend,impressions,clicks,ctr,cpc&date_preset=${period}&level=adset&limit=100&access_token=${token}`
+        )
+        const insData = await insRes.json()
+        if (!insData.error) {
+          for (const row of (insData.data ?? [])) insMap[row.adset_id] = row
+        }
+      } catch { /* ignora — retorna lista sem métricas */ }
+
+      const withInsights = adsets.map((a: Record<string, string>) => {
+        const ins = insMap[a.id] ?? {}
+        return { ...a, spend: ins.spend ?? '0', impressions: ins.impressions ?? '0', clicks: ins.clicks ?? '0', ctr: ins.ctr ?? '0', cpc: ins.cpc ?? '0' }
+      })
       return NextResponse.json(withInsights)
     }
 
@@ -134,24 +152,30 @@ export async function GET(req: NextRequest) {
       if (!adsetId) return NextResponse.json({ error: 'adsetId obrigatório' }, { status: 400 })
 
       const res = await fetch(
-        `${FB_API}/${adsetId}/ads?fields=name,status,creative{title,body,description,image_url,thumbnail_url,object_story_spec}&limit=50&access_token=${token}`
+        `${FB_API}/${adsetId}/ads?fields=name,status,creative{title,body,image_url,thumbnail_url,object_story_spec{link_data{message,name,description,picture,call_to_action},video_data{message,title,description,image_url,call_to_action}}}&limit=50&access_token=${token}`
       )
       const data = await res.json()
       if (data.error) return NextResponse.json({ error: data.error.message }, { status: 400 })
 
       const ads = data.data ?? []
-      const withInsights = await Promise.all(
-        ads.map(async (a: Record<string, unknown>) => {
-          const creative = parseCreative((a.creative as Record<string, unknown>) ?? {})
-          try {
-            const ir = await fetch(`${FB_API}/${a.id}/insights?fields=spend,impressions,clicks,ctr,cpc&date_preset=${period}&access_token=${token}`)
-            const id = (await ir.json()).data?.[0] ?? {}
-            return { id: a.id, name: a.name, status: a.status, creative, spend: id.spend ?? '0', impressions: id.impressions ?? '0', clicks: id.clicks ?? '0', ctr: id.ctr ?? '0', cpc: id.cpc ?? '0' }
-          } catch {
-            return { id: a.id, name: a.name, status: a.status, creative, spend: '0', impressions: '0', clicks: '0', ctr: '0', cpc: '0' }
-          }
-        })
-      )
+
+      // Insights opcionais — se falhar (rate limit), retorna anúncios sem métricas
+      let insMap: Record<string, Record<string, string>> = {}
+      try {
+        const insRes = await fetch(
+          `${FB_API}/${adsetId}/insights?fields=ad_id,spend,impressions,clicks,ctr,cpc&date_preset=${period}&level=ad&limit=100&access_token=${token}`
+        )
+        const insData = await insRes.json()
+        if (!insData.error) {
+          for (const row of (insData.data ?? [])) insMap[row.ad_id] = row
+        }
+      } catch { /* ignora — retorna anúncios sem métricas */ }
+
+      const withInsights = ads.map((a: Record<string, unknown>) => {
+        const creative = parseCreative((a.creative as Record<string, unknown>) ?? {})
+        const ins = insMap[String(a.id)] ?? {}
+        return { id: a.id, name: a.name, status: a.status, creative, spend: ins.spend ?? '0', impressions: ins.impressions ?? '0', clicks: ins.clicks ?? '0', ctr: ins.ctr ?? '0', cpc: ins.cpc ?? '0' }
+      })
       return NextResponse.json(withInsights)
     }
 
