@@ -41,6 +41,7 @@ export function useFacebookAds() {
   const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set())
   const [expandedAdsets, setExpandedAdsets] = useState<Set<string>>(new Set())
   const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set())
+  const [expandErrors, setExpandErrors] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     getDoc(doc(db, 'config', 'facebook_ads')).then(snap => {
@@ -87,21 +88,28 @@ export function useFacebookAds() {
   }, [selectedAccountId, period, fetchData])
 
   async function expandCampaign(campaignId: string) {
-    // Toggle se já expandido
     if (expandedCampaigns.has(campaignId)) {
       setExpandedCampaigns(prev => { const s = new Set(prev); s.delete(campaignId); return s })
       return
     }
     setExpandedCampaigns(prev => new Set(prev).add(campaignId))
 
-    // Já carregou antes
     if (adsets.has(campaignId)) return
 
     setLoadingItems(prev => new Set(prev).add(campaignId))
+    setExpandErrors(prev => { const m = new Map(prev); m.delete(campaignId); return m })
     try {
       const res = await fetch(`/api/facebook?type=adsets&campaignId=${campaignId}&period=${period}`)
       const data = await res.json()
-      setAdsets(prev => new Map(prev).set(campaignId, Array.isArray(data) ? data : []))
+      if (data?.error) {
+        setExpandErrors(prev => new Map(prev).set(campaignId, String(data.error)))
+        setAdsets(prev => new Map(prev).set(campaignId, []))
+      } else {
+        setAdsets(prev => new Map(prev).set(campaignId, Array.isArray(data) ? data : []))
+      }
+    } catch (e) {
+      setExpandErrors(prev => new Map(prev).set(campaignId, String(e)))
+      setAdsets(prev => new Map(prev).set(campaignId, []))
     } finally {
       setLoadingItems(prev => { const s = new Set(prev); s.delete(campaignId); return s })
     }
@@ -117,10 +125,19 @@ export function useFacebookAds() {
     if (ads.has(adsetId)) return
 
     setLoadingItems(prev => new Set(prev).add(adsetId))
+    setExpandErrors(prev => { const m = new Map(prev); m.delete(adsetId); return m })
     try {
       const res = await fetch(`/api/facebook?type=ads&adsetId=${adsetId}&period=${period}`)
       const data = await res.json()
-      setAds(prev => new Map(prev).set(adsetId, Array.isArray(data) ? data : []))
+      if (data?.error) {
+        setExpandErrors(prev => new Map(prev).set(adsetId, String(data.error)))
+        setAds(prev => new Map(prev).set(adsetId, []))
+      } else {
+        setAds(prev => new Map(prev).set(adsetId, Array.isArray(data) ? data : []))
+      }
+    } catch (e) {
+      setExpandErrors(prev => new Map(prev).set(adsetId, String(e)))
+      setAds(prev => new Map(prev).set(adsetId, []))
     } finally {
       setLoadingItems(prev => { const s = new Set(prev); s.delete(adsetId); return s })
     }
@@ -157,6 +174,7 @@ export function useFacebookAds() {
     expandedCampaigns,
     expandedAdsets,
     loadingItems,
+    expandErrors,
     expandCampaign,
     expandAdset,
     salvarConfig,

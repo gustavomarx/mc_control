@@ -135,13 +135,14 @@ function AdCard({ ad }: { ad: FbAd }) {
 }
 
 function AdsetRow({
-  adset, expanded, loading, ads,
+  adset, expanded, loading, ads, error,
   onExpand,
 }: {
   adset: FbAdSet
   expanded: boolean
   loading: boolean
   ads: FbAd[] | undefined
+  error?: string
   onExpand: () => void
 }) {
   return (
@@ -168,6 +169,8 @@ function AdsetRow({
         <div className="mt-2 mb-3">
           {loading ? (
             <p className="text-xs text-gray-400 py-2 pl-2">Carregando anúncios...</p>
+          ) : error ? (
+            <p className="text-xs text-red-500 py-2 pl-2">{error}</p>
           ) : !ads?.length ? (
             <p className="text-xs text-gray-400 py-2 pl-2">Nenhum anúncio encontrado.</p>
           ) : (
@@ -185,7 +188,7 @@ function CampaignRow({
   campaign, expanded, loading,
   adsets: campaignAdsets,
   expandedAdsets, loadingItems,
-  adsMap,
+  adsMap, expandErrors,
   onExpand, onExpandAdset,
 }: {
   campaign: FacebookCampaign
@@ -195,9 +198,12 @@ function CampaignRow({
   expandedAdsets: Set<string>
   loadingItems: Set<string>
   adsMap: Map<string, FbAd[]>
+  expandErrors: Map<string, string>
   onExpand: () => void
   onExpandAdset: (id: string) => void
 }) {
+  const campaignError = expandErrors.get(campaign.id)
+
   return (
     <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
       {/* Linha da campanha */}
@@ -235,6 +241,8 @@ function CampaignRow({
         <div className="border-t border-gray-50 px-4 pb-3 pt-2">
           {loading ? (
             <p className="text-xs text-gray-400 py-2">Carregando conjuntos...</p>
+          ) : campaignError ? (
+            <p className="text-xs text-red-500 py-2">{campaignError}</p>
           ) : !campaignAdsets?.length ? (
             <p className="text-xs text-gray-400 py-2">Nenhum conjunto encontrado.</p>
           ) : (
@@ -246,6 +254,7 @@ function CampaignRow({
                   expanded={expandedAdsets.has(adset.id)}
                   loading={loadingItems.has(adset.id)}
                   ads={adsMap.get(adset.id)}
+                  error={expandErrors.get(adset.id)}
                   onExpand={() => onExpandAdset(adset.id)}
                 />
               ))}
@@ -265,7 +274,7 @@ export default function FacebookAdsPage() {
     period, setPeriod,
     accountData, campaigns,
     loadingConfig, loadingData, error,
-    adsets, ads, expandedCampaigns, expandedAdsets, loadingItems,
+    adsets, ads, expandedCampaigns, expandedAdsets, loadingItems, expandErrors,
     expandCampaign, expandAdset,
     salvarConfig, refresh,
   } = useFacebookAds()
@@ -364,7 +373,7 @@ export default function FacebookAdsPage() {
             ) : accountData ? (
               <>
                 {/* Saldo em destaque */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div className="bg-blue-600 rounded-xl p-5 text-white">
                     <p className="text-xs text-blue-200 mb-1">Saldo atual</p>
                     <p className="text-3xl font-bold">
@@ -373,10 +382,6 @@ export default function FacebookAdsPage() {
                     {accountData.balance === 0 && (
                       <p className="text-xs text-blue-300 mt-1">Conta pós-paga</p>
                     )}
-                  </div>
-                  <div className="bg-white border border-gray-100 rounded-xl p-5">
-                    <p className="text-xs text-gray-400 mb-1">Gasto total (conta)</p>
-                    <p className="text-2xl font-bold text-gray-900">{fmtBRL(accountData.amount_spent)}</p>
                   </div>
                   <div className="bg-white border border-gray-100 rounded-xl p-5">
                     <p className="text-xs text-gray-400 mb-1">Gasto no período</p>
@@ -441,6 +446,7 @@ export default function FacebookAdsPage() {
                         expandedAdsets={expandedAdsets}
                         loadingItems={loadingItems}
                         adsMap={ads}
+                        expandErrors={expandErrors}
                         onExpand={() => expandCampaign(campaign.id)}
                         onExpandAdset={expandAdset}
                       />
