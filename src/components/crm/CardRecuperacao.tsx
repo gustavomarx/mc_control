@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { RecuperacaoStatus, StatusRecuperacao } from '@/types'
-import { msgRecuperacao, aplicarTemplate, linkWhatsApp } from '@/lib/crm-messages'
+import { msgRecuperacao, aplicarTemplate, linkWhatsAppComMensagem } from '@/lib/crm-messages'
 
 const STATUS_CONFIG: Record<StatusRecuperacao, { label: string; cls: string }> = {
   nao_contatada: { label: 'Não contatada', cls: 'bg-gray-100 text-gray-600' },
@@ -140,7 +140,12 @@ export default function CardRecuperacao({ cliente, onAtualizarStatus, onAtualiza
           {copiado ? '✓ Copiado!' : '📋 Copiar mensagem'}
         </button>
         <a
-          href={linkWhatsApp(cliente.celular)}
+          href={linkWhatsAppComMensagem(
+            cliente.celular,
+            templateConteudo
+              ? aplicarTemplate(templateConteudo, cliente.nome)
+              : msgRecuperacao(cliente.nome)
+          )}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1 text-xs py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors text-center"
