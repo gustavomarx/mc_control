@@ -92,7 +92,7 @@ export default function CrmPage() {
     loadingAniv, loadingRec,
     uploadInfoAniv, uploadInfo0051,
     templates, templateAnivId, templateRecId,
-    uploadAniversariantes, uploadAgenda0051,
+    uploadAniversariantes,
     atualizarStatusAniv, atualizarStatusRec, atualizarObservacaoRec,
     salvarConfigTemplate,
   } = useCrm()
@@ -109,14 +109,12 @@ export default function CrmPage() {
   const [filtroRec, setFiltroRec] = useState<FiltroRec>('todos')
   const [soNaoContatadas, setSoNaoContatadas] = useState(false)
   const [uploadingAniv, setUploadingAniv] = useState(false)
-  const [uploading0051, setUploading0051] = useState(false)
   const [diasMinimos, setDiasMinimos] = useState(21)
   const [diasMaximos, setDiasMaximos] = useState(90)
   const [inputMin, setInputMin] = useState('21')
   const [inputMax, setInputMax] = useState('90')
 
   const inputAnivRef = useRef<HTMLInputElement>(null)
-  const inputAgendaRef = useRef<HTMLInputElement>(null)
 
   async function handleUploadAniv(file: File) {
     setUploadingAniv(true)
@@ -142,18 +140,6 @@ export default function CrmPage() {
     const hoje = new Date()
     const data = `${String(hoje.getDate()).padStart(2, '0')}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${hoje.getFullYear()}`
     XLSX.writeFile(wb, `recuperacao_${segmento}_${diasMinimos}-${diasMaximos}d_${data}.xlsx`)
-  }
-
-  async function handleUpload0051(file: File) {
-    setUploading0051(true)
-    try {
-      await uploadAgenda0051(file)
-    } catch (e) {
-      console.error(e)
-      alert('Erro ao processar o arquivo. Verifique se é o relatório 0051 do AVEC.')
-    } finally {
-      setUploading0051(false)
-    }
   }
 
   const aniversariantesFiltrados = useMemo(() => {
@@ -352,15 +338,10 @@ export default function CrmPage() {
                   className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-white transition-colors">
                   Abrir 0051 no AVEC ↗
                 </a>
-                <button
-                  onClick={() => inputAgendaRef.current?.click()}
-                  disabled={uploading0051}
-                  className="px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg disabled:opacity-50 transition-colors"
-                >
-                  {uploading0051 ? 'Processando...' : 'Upload 0051'}
-                </button>
-                <input ref={inputAgendaRef} type="file" accept=".xlsx,.xls" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload0051(f); e.target.value = '' }} />
+                <a href="/importacoes"
+                  className="px-3 py-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">
+                  Importar 0051 →
+                </a>
               </div>
             </div>
 

@@ -57,11 +57,33 @@ function isDomingo(d: Date): boolean {
   return d.getDay() === 0
 }
 
+// Converte qualquer valor de célula para string de data "YYYY-MM-DD" ou o valor original
+function cellToStr(val: unknown): string {
+  if (val instanceof Date) {
+    const yyyy = val.getUTCFullYear()
+    const mm   = String(val.getUTCMonth() + 1).padStart(2, '0')
+    const dd   = String(val.getUTCDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+  return String(val ?? '')
+}
+
+// Busca coluna por múltiplos nomes possíveis (case-insensitive, sem acento)
+function getCol(row: Record<string, unknown>, ...names: string[]): string {
+  const norm = (s: string) =>
+    s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  for (const name of names) {
+    const key = Object.keys(row).find(k => norm(k) === norm(name))
+    if (key !== undefined) return cellToStr(row[key])
+  }
+  return ''
+}
+
 export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
   const buffer = await file.arrayBuffer()
   const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
   const ws = wb.Sheets[wb.SheetNames[0]]
-  const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
 
   // Agrupa dados por semanaKey
   const semanas = new Map<string, {
@@ -79,7 +101,7 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
   }>()
 
   for (const row of rows) {
-    const dataReservaStr = String(row['Data Reserva'] ?? row['Data_Reserva'] ?? '')
+    const dataReservaStr = getCol(row, 'Data Reserva', 'Data_Reserva', 'Data')
     const dataReserva = parseDataBR(dataReservaStr)
     if (!dataReserva) continue
     if (isDomingo(dataReserva)) continue
