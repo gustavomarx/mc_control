@@ -466,3 +466,81 @@ export interface ResultadoDRE {
   pontoEquilibrio: number
   abaixoPontoEquilibrio: boolean
 }
+
+// ── Facebook Ads ──────────────────────────────────────────────────────────────
+
+export interface FacebookAdsAccount {
+  id: string    // act_XXXXXXXXX
+  name: string
+}
+
+export interface FacebookAdsConfig {
+  token: string
+  accounts: FacebookAdsAccount[]
+  defaultAccountId: string
+}
+
+export interface FacebookCampaign {
+  id: string
+  name: string
+  status: string
+  objective: string
+  daily_budget?: string
+  lifetime_budget?: string
+  spend: string
+  impressions: string
+  clicks: string
+  ctr: string
+  cpc: string
+}
+
+export interface FbAdSet {
+  id: string
+  name: string
+  status: string
+  daily_budget?: string
+  lifetime_budget?: string
+  spend: string
+  impressions: string
+  clicks: string
+  ctr: string
+  cpc: string
+}
+
+export interface FbAdCreative {
+  title?: string
+  body?: string
+  description?: string
+  image_url?: string
+  thumbnail_url?: string
+  call_to_action?: string
+}
+
+export interface FbAd {
+  id: string
+  name: string
+  status: string
+  creative: FbAdCreative
+  spend: string
+  impressions: string
+  clicks: string
+  ctr: string
+  cpc: string
+}
+
+export interface FacebookAccountInsights {
+  id: string
+  name: string
+  currency: string
+  balance: number        // R$ (já convertido de centavos)
+  amount_spent: number   // R$ (já convertido de centavos)
+  spend_cap: number      // R$ limite de gasto
+  spend: string          // R$ do período (insights)
+  impressions: string
+  clicks: string
+  ctr: string
+  cpc: string
+  cpm: string
+  reach: string
+}
+

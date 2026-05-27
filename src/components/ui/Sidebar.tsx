@@ -14,6 +14,7 @@ const NAV_OPERACIONAL = [
   { href: '/crm', label: 'CRM' },
   { href: '/comissoes', label: 'Comissões' },
   { href: '/caixa', label: 'Caixa' },
+  { href: '/facebook-ads', label: 'Facebook Ads' },
 ]
 
 const NAV_FINANCEIRO = [

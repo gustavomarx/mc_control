@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import { useAuth } from '@/contexts/AuthContext'
 
-const ROTAS_ACESSIVEIS = ['/mensagens', '/tarefas', '/agenda', '/crm', '/comissoes', '/caixa', '/home']
+const ROTAS_ACESSIVEIS = ['/mensagens', '/tarefas', '/agenda', '/crm', '/comissoes', '/caixa', '/facebook-ads', '/home']
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
