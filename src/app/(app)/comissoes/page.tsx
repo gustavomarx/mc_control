@@ -12,10 +12,33 @@ function moeda(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+const MESES_FULL  = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+
 function formatarPeriodo(inicio: string, fim: string): string {
   const [ai, mi, di] = inicio.split('-')
   const [af, mf, df] = fim.split('-')
   return `${di}/${mi}/${ai} → ${df}/${mf}/${af}`
+}
+
+// "Março 2026" se cobre o mesmo mês, senão "DD/MM → DD/MM/YY"
+function labelPeriodo(inicio: string, fim: string): string {
+  const [ai, mi] = inicio.split('-')
+  const [af, mf] = fim.split('-')
+  if (ai === af && mi === mf)
+    return `${MESES_FULL[parseInt(mi) - 1]} ${ai}`
+  return formatarPeriodo(inicio, fim)
+}
+
+// Versão curta para pills: "Mar/26"
+function labelCurta(inicio: string, fim: string): string {
+  const [ai, mi] = inicio.split('-')
+  const [af, mf] = fim.split('-')
+  if (ai === af && mi === mf)
+    return `${MESES_ABREV[parseInt(mi) - 1]}/${ai.slice(2)}`
+  const [,, di] = inicio.split('-')
+  const [,,df]  = fim.split('-')
+  return `${di}/${mi} → ${df}/${mf}`
 }
 
 const MEDALHAS = ['🥇', '🥈', '🥉']
@@ -31,37 +54,54 @@ interface ModalPeriodoProps {
 }
 
 function ModalPeriodo({ onConfirmar, onCancelar }: ModalPeriodoProps) {
-  const hoje = new Date().toISOString().slice(0, 10)
-  const primeiroDia = hoje.slice(0, 8) + '01'
-  const [inicio, setInicio] = useState(primeiroDia)
-  const [fim, setFim] = useState(hoje)
+  const hoje = new Date()
+  // Padrão: mês atual
+  const [ano, setAno]  = useState(hoje.getFullYear())
+  const [mes, setMes]  = useState(hoje.getMonth()) // 0-indexed
+
+  function diasNoMes(a: number, m: number) {
+    return new Date(a, m + 1, 0).getDate()
+  }
+
+  function confirmar() {
+    const mm    = String(mes + 1).padStart(2, '0')
+    const inicio = `${ano}-${mm}-01`
+    const fim    = `${ano}-${mm}-${String(diasNoMes(ano, mes)).padStart(2, '0')}`
+    onConfirmar(inicio, fim)
+  }
+
+  const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const anos = [hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">Período do relatório</h2>
+        <h2 className="text-base font-semibold text-gray-900 mb-1">A qual mês pertence este arquivo?</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Preencha o mesmo período usado no AVEC.
-          <br />Sugestão: dia 1 do mês até hoje.
+          Cada importação corresponde a um mês fechado.<br />
+          O relatório 0123 agrega o período inteiro — importe um arquivo por mês.
         </p>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Data início</label>
-            <input type="date" value={inicio} onChange={e => setInicio(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Data fim</label>
-            <input type="date" value={fim} onChange={e => setFim(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
+        <div className="flex gap-2">
+          <select
+            value={mes}
+            onChange={e => setMes(Number(e.target.value))}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {mesesNomes.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </select>
+          <select
+            value={ano}
+            onChange={e => setAno(Number(e.target.value))}
+            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {anos.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onCancelar} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancelar</button>
           <button
-            onClick={() => onConfirmar(inicio, fim)}
-            disabled={!inicio || !fim}
-            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg disabled:opacity-40 transition-colors"
+            onClick={confirmar}
+            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Confirmar
           </button>
@@ -161,12 +201,22 @@ function TabelaComissoes({ dados, anterior }: TabelaProps) {
 }
 
 export default function ComissoesPage() {
-  const { comissoes, atual, anterior, loading, salvar } = useComissoes()
+  const { comissoes, atual, anterior, loading, salvar, limparDuplicatas } = useComissoes()
   const [selecionado, setSelecionado] = useState<string | null>(null)
   const [modalPeriodo, setModalPeriodo] = useState(false)
   const [pendente, setPendente] = useState<Awaited<ReturnType<typeof parseComissoes>> | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [limpando, setLimpando] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Detecta duplicatas: IDs que não estão no formato "YYYY-MM"
+  const temDuplicatas = comissoes.some(c => !/^\d{4}-\d{2}$/.test(c.id ?? c.periodoKey))
+
+  async function handleLimpar() {
+    if (!confirm('Isso vai remover todos os registros duplicados e manter apenas o mais recente por mês. Continuar?')) return
+    setLimpando(true)
+    try { await limparDuplicatas() } finally { setLimpando(false) }
+  }
 
   const dadosExibidos = selecionado
     ? comissoes.find(c => c.periodoKey === selecionado) ?? atual
@@ -254,28 +304,49 @@ export default function ComissoesPage() {
           </div>
         </div>
 
-        {/* Seletor de período */}
-        {comissoes.length > 1 && (
-          <div className="mb-5">
-            <select
-              value={selecionado ?? (atual?.periodoKey ?? '')}
-              onChange={e => setSelecionado(e.target.value)}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        {/* Aviso de duplicatas */}
+        {temDuplicatas && (
+          <div className="mb-4 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <p className="text-xs text-amber-800">
+              Existem registros duplicados no banco (IDs antigos). Clique em Limpar para manter só o mais recente por mês.
+            </p>
+            <button
+              onClick={handleLimpar}
+              disabled={limpando}
+              className="shrink-0 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition-colors"
             >
-              {comissoes.map(c => (
-                <option key={c.periodoKey} value={c.periodoKey}>
-                  {formatarPeriodo(c.periodoInicio, c.periodoFim)}
-                </option>
-              ))}
-            </select>
+              {limpando ? 'Limpando…' : 'Limpar'}
+            </button>
+          </div>
+        )}
+
+        {/* Pills de mês */}
+        {comissoes.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5">
+            {comissoes.map(c => {
+              const ativo = (selecionado ?? atual?.periodoKey) === c.periodoKey
+              return (
+                <button
+                  key={c.periodoKey}
+                  onClick={() => setSelecionado(c.periodoKey)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    ativo
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50 hover:border-emerald-200'
+                  }`}
+                >
+                  {labelCurta(c.periodoInicio, c.periodoFim)}
+                </button>
+              )
+            })}
           </div>
         )}
 
         {dadosExibidos ? (
           <>
             {/* Período exibido */}
-            <p className="text-xs text-gray-400 mb-4">
-              {formatarPeriodo(dadosExibidos.periodoInicio, dadosExibidos.periodoFim)}
+            <p className="text-sm font-semibold text-gray-700 mb-4">
+              {labelPeriodo(dadosExibidos.periodoInicio, dadosExibidos.periodoFim)}
             </p>
 
             {/* KPIs */}

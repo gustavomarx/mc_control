@@ -291,6 +291,16 @@ const AVEC_LABELS: Record<string, string> = {
   faturamento_real: '0088 — Faturamento Real',
 }
 
+const MESES_ABREV_IMPORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+
+function avecLabel(key: string): string {
+  if (AVEC_LABELS[key]) return AVEC_LABELS[key]
+  // Comissões mensais: "comissoes_2026-03" → "0123 — Comissões (Mar/26)"
+  const m = key.match(/^comissoes_(\d{4})-(\d{2})$/)
+  if (m) return `0123 — Comissões (${MESES_ABREV_IMPORT[+m[2] - 1]}/${m[1].slice(2)})`
+  return key
+}
+
 const AVEC_CODIGOS: Record<string, string> = {
   agenda: '0051', aniversariantes: '0001', comissoes: '0123',
   caixa: '0281', tabela: '0033', faturamento_real: '0088',
@@ -463,7 +473,7 @@ export default function ImportacoesPage() {
           const next = [...prev]
 
           if (msg.phase === 'extract' && msg.state === 'loading')
-            return next.some(s => s.id === `ext-${msg.key}`) ? next : [...next, { id: `ext-${msg.key}`, icon: '⏳', text: AVEC_LABELS[msg.key] ?? msg.key, state: 'loading' }]
+            return next.some(s => s.id === `ext-${msg.key}`) ? next : [...next, { id: `ext-${msg.key}`, icon: '⏳', text: avecLabel(msg.key), state: 'loading' }]
           if (msg.phase === 'extract' && msg.state === 'done')
             return next.map(s => s.id === `ext-${msg.key}` ? { ...s, icon: '✅', state: 'done' } : s)
           if (msg.phase === 'extract' && msg.state === 'error')
@@ -472,7 +482,7 @@ export default function ImportacoesPage() {
           if (msg.phase === 'upload' && msg.state === 'opening')
             return [...next, { id: '__upl_header', icon: '', text: '⬆ Importando…', state: 'msg' }]
           if (msg.phase === 'upload' && msg.key && msg.state === 'loading')
-            return [...next, { id: `upl-${msg.key}`, icon: '⏳', text: AVEC_LABELS[msg.key] ?? msg.key, state: 'loading' }]
+            return [...next, { id: `upl-${msg.key}`, icon: '⏳', text: avecLabel(msg.key), state: 'loading' }]
           if (msg.phase === 'upload' && msg.key && msg.state === 'done')
             return next.map(s => s.id === `upl-${msg.key}` ? { ...s, icon: '✅', state: 'done' } : s)
           if (msg.phase === 'upload' && msg.key && msg.state === 'error')
