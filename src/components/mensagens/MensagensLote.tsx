@@ -882,7 +882,7 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
       {/* ── Botão fixo extensão ── */}
       <button
         onClick={() => setModalAjudaExtensao(true)}
-        title="Extensão WA Auto Sender"
+        title="mc_extension — Studio Meus Cílios"
         style={{ position: 'fixed', top: 16, right: 16, zIndex: 90, display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: '#fff', border: '1.5px solid var(--beige)', borderRadius: 20, boxShadow: '0 2px 10px rgba(74,18,40,.1)', fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 600, color: 'var(--warm-gray)', cursor: 'pointer', transition: 'all .18s' }}
         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--rose-gold)'; (e.currentTarget as HTMLElement).style.color = 'var(--bordeaux-dark)' }}
         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--beige)'; (e.currentTarget as HTMLElement).style.color = 'var(--warm-gray)' }}
@@ -902,8 +902,8 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
                   <PuzzleIcon size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, fontStyle: 'italic', color: 'var(--bordeaux-dark)', margin: 0 }}>Extensão WA Auto Sender</h3>
-                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--warm-gray)', margin: 0 }}>Necessária para envio automático</p>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, fontStyle: 'italic', color: 'var(--bordeaux-dark)', margin: 0 }}>mc_extension</h3>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--warm-gray)', margin: 0 }}>WA Auto Sender + AVEC Importer</p>
                 </div>
               </div>
               <button onClick={() => setModalAjudaExtensao(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-gray)', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -913,8 +913,8 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
 
             {/* Download */}
             <a
-              href="/wa_extension.zip"
-              download="wa_extension.zip"
+              href="/mc_extension.zip"
+              download="mc_extension.zip"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '13px 20px', background: 'linear-gradient(135deg, var(--bordeaux-mid) 0%, var(--bordeaux-dark) 100%)', color: 'var(--rose-gold-light)', borderRadius: 10, fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '.04em', textDecoration: 'none', boxShadow: '0 4px 14px rgba(74,18,40,.3)', marginBottom: 24 }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={17} height={17}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -929,7 +929,7 @@ export default function MensagensLote({ templates, isAdmin, onAbrirTemplates }: 
                 { n: '2', texto: <>No Chrome, acesse <strong style={{ fontFamily: 'monospace', fontSize: 12 }}>chrome://extensions</strong></> },
                 { n: '3', texto: 'Ative o "Modo do desenvolvedor" no canto superior direito' },
                 { n: '4', texto: 'Clique em "Carregar sem compactação" e selecione a pasta extraída' },
-                { n: '5', texto: 'A extensão "WA Auto Sender — mc_control" aparecerá na lista' },
+                { n: '5', texto: 'A extensão "mc_extension — Studio Meus Cílios" aparecerá na lista' },
               ].map(s => (
                 <div key={s.n} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <span style={{ minWidth: 24, height: 24, background: 'linear-gradient(135deg, var(--rose-gold) 0%, #b87f56 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0, fontFamily: "'Jost', sans-serif", marginTop: 1 }}>{s.n}</span>
