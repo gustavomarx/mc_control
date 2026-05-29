@@ -293,6 +293,29 @@ const AVEC_LABELS: Record<string, string> = {
 
 const MESES_ABREV_IMPORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
+function gerarMeses(n = 13): { value: string; label: string }[] {
+  const lista = []
+  const agora = new Date()
+  for (let i = 0; i < n; i++) {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1)
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = `${MESES_ABREV_IMPORT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`
+    lista.push({ value, label })
+  }
+  return lista
+}
+
+function mesParaPeriodo(mes: string): { inicio: string; fim: string } {
+  const [ano, m] = mes.split('-').map(Number)
+  const ultimo = new Date(ano, m, 0).getDate()
+  return {
+    inicio: `${mes}-01`,
+    fim: `${mes}-${String(ultimo).padStart(2, '0')}`,
+  }
+}
+
+const MESES_OPCOES = gerarMeses()
+
 function avecLabel(key: string): string {
   if (AVEC_LABELS[key]) return AVEC_LABELS[key]
   // Comissões mensais: "comissoes_2026-03" → "0123 — Comissões (Mar/26)"
@@ -309,8 +332,8 @@ const AVEC_CODIGOS: Record<string, string> = {
 // ── Modal Importar AVEC ───────────────────────────────────────────────────────
 
 function ModalImportarAvec({
-  extensaoOk, running, status, inicio, fim, keys,
-  onInicio, onFim, onToggleKey, onExecutar, onFechar,
+  extensaoOk, running, status, inicio, fim, keys, comissoesMes,
+  onInicio, onFim, onToggleKey, onComissoesMes, onExecutar, onFechar,
 }: {
   extensaoOk: boolean
   running: boolean
@@ -318,9 +341,11 @@ function ModalImportarAvec({
   inicio: string
   fim: string
   keys: Set<string>
+  comissoesMes: string
   onInicio: (v: string) => void
   onFim: (v: string) => void
   onToggleKey: (k: string) => void
+  onComissoesMes: (v: string) => void
   onExecutar: () => void
   onFechar: () => void
 }) {
@@ -368,6 +393,22 @@ function ModalImportarAvec({
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" />
               </div>
             </div>
+
+            {/* Mês das Comissões */}
+            {keys.has('comissoes') && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Mês das Comissões</label>
+                <select
+                  value={comissoesMes}
+                  onChange={e => onComissoesMes(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                >
+                  {MESES_OPCOES.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Relatórios */}
             <div>
@@ -456,6 +497,10 @@ export default function ImportacoesPage() {
   const [avecInicio, setAvecInicio] = useState(`${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`)
   const [avecFim, setAvecFim] = useState(hoje.toISOString().slice(0, 10))
   const [avecKeys, setAvecKeys] = useState<Set<string>>(new Set(['agenda', 'aniversariantes', 'comissoes', 'caixa']))
+  const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+  const [avecComissoesMes, setAvecComissoesMes] = useState(mesAtual)
+  const avecComissoesMesRef = useRef(avecComissoesMes)
+  avecComissoesMesRef.current = avecComissoesMes
 
   // Detecta extensão e recebe status via postMessage (funciona no isolated world)
   useEffect(() => {
@@ -564,9 +609,27 @@ export default function ImportacoesPage() {
     setLoadingComissoes(true)
     try {
       const resultado = await parseComissoes(file)
-      const periodoKey = resultado.periodoKey ?? (opts ? `${opts.inicio}_${opts.fim}` : null)
-      const periodoInicio = resultado.periodoInicio ?? opts?.inicio
-      const periodoFim = resultado.periodoFim ?? opts?.fim
+
+      // Auto-import via extensão: usa o mês selecionado como período
+      if (opts && avecComissoesMesRef.current) {
+        const { inicio, fim } = mesParaPeriodo(avecComissoesMesRef.current)
+        await salvarComissoes({
+          periodoKey: `${inicio}_${fim}`,
+          periodoInicio: inicio,
+          periodoFim: fim,
+          uploadEm: Timestamp.now(),
+          totalFaturado: resultado.totalFaturado,
+          totalAPagar: resultado.totalAPagar,
+          valorCasa: resultado.valorCasa,
+          profissionais: resultado.profissionais,
+        })
+        mostrar('Comissões importadas com sucesso')
+        return
+      }
+
+      const periodoKey = resultado.periodoKey ?? null
+      const periodoInicio = resultado.periodoInicio
+      const periodoFim = resultado.periodoFim
 
       if (!periodoKey) {
         setPendenteComissoes(resultado)
@@ -969,6 +1032,7 @@ export default function ImportacoesPage() {
           inicio={avecInicio}
           fim={avecFim}
           keys={avecKeys}
+          comissoesMes={avecComissoesMes}
           onInicio={setAvecInicio}
           onFim={setAvecFim}
           onToggleKey={k => setAvecKeys(prev => {
@@ -976,6 +1040,7 @@ export default function ImportacoesPage() {
             next.has(k) ? next.delete(k) : next.add(k)
             return next
           })}
+          onComissoesMes={setAvecComissoesMes}
           onExecutar={dispararImportAvec}
           onFechar={() => { if (!avecRunning) setModalAvec(false) }}
         />

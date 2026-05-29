@@ -75,5 +75,9 @@ export function useComissoes() {
     await Promise.all([...deletes, ...saves])
   }, [])
 
-  return { comissoes, atual, anterior, loading, salvar, limparDuplicatas }
+  const remover = useCallback(async (id: string) => {
+    await deleteDoc(doc(db, 'comissoes', id))
+  }, [])
+
+  return { comissoes, atual, anterior, loading, salvar, remover, limparDuplicatas }
 }

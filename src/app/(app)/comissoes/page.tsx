@@ -153,7 +153,7 @@ function TabelaComissoes({ dados, anterior }: TabelaProps) {
             </thead>
             <tbody>
               {comAtendimento.map((prof, i) => (
-                <tr key={prof.nome} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                <tr key={`${prof.nome}-${i}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                   <td className="px-3 py-3 text-center text-sm">
                     {i < 3 ? MEDALHAS[i] : <span className="text-xs text-gray-400">{i + 1}</span>}
                   </td>
@@ -201,16 +201,30 @@ function TabelaComissoes({ dados, anterior }: TabelaProps) {
 }
 
 export default function ComissoesPage() {
-  const { comissoes, atual, anterior, loading, salvar, limparDuplicatas } = useComissoes()
+  const { comissoes, atual, anterior, loading, salvar, remover, limparDuplicatas } = useComissoes()
   const [selecionado, setSelecionado] = useState<string | null>(null)
   const [modalPeriodo, setModalPeriodo] = useState(false)
   const [pendente, setPendente] = useState<Awaited<ReturnType<typeof parseComissoes>> | null>(null)
   const [uploading, setUploading] = useState(false)
   const [limpando, setLimpando] = useState(false)
+  const [removendo, setRemovendo] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Detecta duplicatas: IDs que não estão no formato "YYYY-MM"
   const temDuplicatas = comissoes.some(c => !/^\d{4}-\d{2}$/.test(c.id ?? c.periodoKey))
+
+  async function handleRemover(c: typeof comissoes[0], e: React.MouseEvent) {
+    e.stopPropagation()
+    const label = labelCurta(c.periodoInicio, c.periodoFim)
+    if (!confirm(`Remover o período "${label}"? Essa ação não pode ser desfeita.`)) return
+    setRemovendo(c.id ?? c.periodoKey)
+    try {
+      await remover(c.id ?? c.periodoKey)
+      if (selecionado === c.periodoKey) setSelecionado(null)
+    } finally {
+      setRemovendo(null)
+    }
+  }
 
   async function handleLimpar() {
     if (!confirm('Isso vai remover todos os registros duplicados e manter apenas o mais recente por mês. Continuar?')) return
@@ -325,18 +339,34 @@ export default function ComissoesPage() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5">
             {comissoes.map(c => {
               const ativo = (selecionado ?? atual?.periodoKey) === c.periodoKey
+              const isRemovendo = removendo === (c.id ?? c.periodoKey)
               return (
-                <button
-                  key={c.periodoKey}
-                  onClick={() => setSelecionado(c.periodoKey)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                    ativo
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50 hover:border-emerald-200'
-                  }`}
-                >
-                  {labelCurta(c.periodoInicio, c.periodoFim)}
-                </button>
+                <div key={c.periodoKey} className="group shrink-0 relative flex items-center">
+                  <button
+                    onClick={() => setSelecionado(c.periodoKey)}
+                    className={`pl-3 pr-7 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                      ativo
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50 hover:border-emerald-200'
+                    }`}
+                  >
+                    {labelCurta(c.periodoInicio, c.periodoFim)}
+                  </button>
+                  <button
+                    onClick={e => handleRemover(c, e)}
+                    disabled={isRemovendo}
+                    title="Remover período"
+                    className={`absolute right-1.5 flex items-center justify-center w-4 h-4 rounded-full transition-opacity disabled:opacity-30 ${
+                      ativo
+                        ? 'text-white/70 hover:text-white opacity-0 group-hover:opacity-100'
+                        : 'text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={10} height={10}>
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
               )
             })}
           </div>
