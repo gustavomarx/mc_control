@@ -481,7 +481,17 @@ export default function FacebookAdsPage() {
                 <input type="password" value={configToken} onChange={e => setConfigToken(e.target.value)}
                   placeholder="EAAxxxxxxxxxxxxxxxx"
                   className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <p className="text-xs text-gray-400 mt-1">Meta Developers → System User → Generate Token</p>
+                <a
+                  href="https://developers.facebook.com/apps/981976841090603/marketing-api/tools/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 mt-1 transition-colors"
+                >
+                  Gerar token no Meta Developers
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
               </div>
               <div className="mb-6">
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Conta padrão</label>
