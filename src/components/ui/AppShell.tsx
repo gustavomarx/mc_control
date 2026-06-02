@@ -3,12 +3,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
+import PopupSaldoFacebook, { SESSION_KEY } from './PopupSaldoFacebook'
 import { useAuth } from '@/contexts/AuthContext'
 
 const ROTAS_ACESSIVEIS = ['/mensagens', '/tarefas', '/agenda', '/crm', '/comissoes', '/caixa', '/facebook-ads', '/home']
 
+interface ContaBaixa {
+  id: string
+  name: string
+  balance: number
+  currency: string
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [contasBaixas, setContasBaixas] = useState<ContaBaixa[] | null>(null)
   const { loading, usuario, perfil, podeAcessar } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -22,8 +31,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (primeira) router.replace(primeira)
   }, [loading, usuario, perfil, pathname, router])
 
+  // Verifica saldo do Facebook Ads ao carregar, para admin ou quem tem permissão
+  useEffect(() => {
+    if (loading || !usuario) return
+    const temAcesso = perfil === 'admin' || usuario.permissoes?.facebook_ads
+    if (!temAcesso) return
+    if (sessionStorage.getItem(SESSION_KEY)) return
+
+    fetch('/api/facebook?type=all-balances')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Array<{ id: string; name: string; balance: number | null; currency: string }> | null) => {
+        if (!data) return
+        const baixas = data.filter(c => c.balance !== null && c.balance < 5) as ContaBaixa[]
+        if (baixas.length > 0) setContasBaixas(baixas)
+      })
+      .catch(() => { /* silencia erros de rede */ })
+  }, [loading, usuario, perfil])
+
   return (
     <div className="flex overflow-hidden" style={{ height: '100dvh' }}>
+
+      {contasBaixas && (
+        <PopupSaldoFacebook
+          contas={contasBaixas}
+          onClose={() => setContasBaixas(null)}
+        />
+      )}
 
       {/* Backdrop mobile */}
       {mobileOpen && (

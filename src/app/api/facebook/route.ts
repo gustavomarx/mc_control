@@ -179,6 +179,31 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(withInsights)
     }
 
+    // ── Saldo de todas as contas configuradas ────────────────────────────────
+    if (type === 'all-balances') {
+      const accounts = config.accounts ?? []
+      const results = await Promise.all(
+        accounts.map(async (acc) => {
+          try {
+            const res = await fetch(
+              `${FB_API}/${acc.id}?fields=name,currency,balance&access_token=${token}`
+            )
+            const data = await res.json()
+            if (data.error) return { id: acc.id, name: acc.name, balance: null, currency: 'BRL', error: data.error.message }
+            return {
+              id: acc.id,
+              name: data.name ?? acc.name,
+              currency: data.currency ?? 'BRL',
+              balance: centsToDecimal(data.balance),
+            }
+          } catch {
+            return { id: acc.id, name: acc.name, balance: null, currency: 'BRL', error: 'Erro ao buscar' }
+          }
+        })
+      )
+      return NextResponse.json(results)
+    }
+
     return NextResponse.json({ error: 'type inválido' }, { status: 400 })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

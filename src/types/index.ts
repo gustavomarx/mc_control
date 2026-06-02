@@ -14,6 +14,7 @@ export interface PermissoesUsuario {
   comissoes: boolean
   caixa: boolean
   financeiro: boolean
+  facebook_ads: boolean
 }
 
 export const PERMISSOES_PADRAO: PermissoesUsuario = {
@@ -25,6 +26,7 @@ export const PERMISSOES_PADRAO: PermissoesUsuario = {
   comissoes: false,
   caixa: false,
   financeiro: false,
+  facebook_ads: false,
 }
 
 export interface Usuario {

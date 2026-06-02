@@ -13,13 +13,14 @@ const BADGE: Record<PerfilUsuario, string> = {
 }
 
 const MODULOS: { key: keyof Omit<PermissoesUsuario, 'tarefasNivel'>; label: string }[] = [
-  { key: 'mensagens',  label: 'Mensagens' },
-  { key: 'tarefas',   label: 'Tarefas' },
-  { key: 'agenda',    label: 'Agenda' },
-  { key: 'crm',       label: 'CRM' },
-  { key: 'comissoes', label: 'Comissões' },
-  { key: 'caixa',     label: 'Caixa' },
-  { key: 'financeiro',label: 'Financeiro' },
+  { key: 'mensagens',   label: 'Mensagens' },
+  { key: 'tarefas',    label: 'Tarefas' },
+  { key: 'agenda',     label: 'Agenda' },
+  { key: 'crm',        label: 'CRM' },
+  { key: 'comissoes',  label: 'Comissões' },
+  { key: 'caixa',      label: 'Caixa' },
+  { key: 'financeiro', label: 'Financeiro' },
+  { key: 'facebook_ads', label: 'Facebook Ads' },
 ]
 
 export default function UsuariosPage() {
