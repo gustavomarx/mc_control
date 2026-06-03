@@ -40,9 +40,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     fetch('/api/facebook?type=all-balances')
       .then(r => r.ok ? r.json() : null)
-      .then((data: Array<{ id: string; name: string; balance: number | null; currency: string }> | null) => {
+      .then((data: Array<{ id: string; name: string; balance: number | null; currency: string; favorito?: boolean }> | null) => {
         if (!data) return
-        const baixas = data.filter(c => c.balance !== null && c.balance < 5) as ContaBaixa[]
+        const baixas = data.filter(c => c.favorito === true && c.balance !== null && c.balance < 5) as ContaBaixa[]
         if (baixas.length > 0) setContasBaixas(baixas)
       })
       .catch(() => { /* silencia erros de rede */ })

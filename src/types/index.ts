@@ -474,6 +474,7 @@ export interface ResultadoDRE {
 export interface FacebookAdsAccount {
   id: string    // act_XXXXXXXXX
   name: string
+  favorito?: boolean
 }
 
 export interface FacebookAdsConfig {

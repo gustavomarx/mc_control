@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  collection, query, orderBy, onSnapshot,
+  collection, query, orderBy, where, onSnapshot,
   doc, setDoc, deleteDoc, getDocs, Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -28,6 +28,17 @@ export function useComissoes() {
   // Garante que re-importar o mesmo mês sobrescreve em vez de criar duplicata
   const salvar = useCallback(async (data: Omit<Comissoes, 'id'>) => {
     const mesKey = data.periodoInicio.slice(0, 7) // "2026-05"
+
+    // Delete todos os docs existentes do mesmo mês (cobre IDs no formato antigo também)
+    const snap = await getDocs(
+      query(
+        collection(db, 'comissoes'),
+        where('periodoInicio', '>=', `${mesKey}-01`),
+        where('periodoInicio', '<=', `${mesKey}-31`),
+      )
+    )
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)))
+
     await setDoc(doc(db, 'comissoes', mesKey), {
       ...data,
       uploadEm: Timestamp.now(),

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { FacebookAdsConfig, FacebookAccountInsights, FacebookCampaign, FbAdSet, FbAd } from '@/types'
+import type { FacebookAdsConfig, FacebookAdsAccount, FacebookAccountInsights, FacebookCampaign, FbAdSet, FbAd } from '@/types'
 
 export type FbPeriod = 'today' | 'yesterday' | 'last_7d' | 'last_30d' | 'this_month'
 
@@ -15,7 +15,7 @@ const ACCOUNTS_DEFAULT = [
   { id: 'act_1183075240210568', name: 'Meus Cílios São José (Novo)' },
 ]
 
-function sortAccountsDefaultFirst(accounts: { id: string; name: string }[], defaultId: string) {
+function sortAccountsDefaultFirst(accounts: FacebookAdsAccount[], defaultId: string): FacebookAdsAccount[] {
   return [...accounts].sort((a, b) => {
     if (a.id === defaultId) return -1
     if (b.id === defaultId) return 1
@@ -143,6 +143,16 @@ export function useFacebookAds() {
     }
   }
 
+  async function toggleFavorito(accountId: string) {
+    if (!config) return
+    const accounts = config.accounts.map(a =>
+      a.id === accountId ? { ...a, favorito: !a.favorito } : a
+    )
+    const newConfig = { ...config, accounts }
+    await setDoc(doc(db, 'config', 'facebook_ads'), newConfig)
+    setConfig(newConfig)
+  }
+
   async function salvarConfig(token: string, defaultAccountId: string) {
     const rawAccounts = config?.accounts ?? ACCOUNTS_DEFAULT
     const accounts = sortAccountsDefaultFirst(rawAccounts, defaultAccountId)
@@ -178,6 +188,7 @@ export function useFacebookAds() {
     expandCampaign,
     expandAdset,
     salvarConfig,
+    toggleFavorito,
     refresh: () => fetchData(selectedAccountId, period),
   }
 }

@@ -189,15 +189,16 @@ export async function GET(req: NextRequest) {
               `${FB_API}/${acc.id}?fields=name,currency,balance&access_token=${token}`
             )
             const data = await res.json()
-            if (data.error) return { id: acc.id, name: acc.name, balance: null, currency: 'BRL', error: data.error.message }
+            if (data.error) return { id: acc.id, name: acc.name, balance: null, currency: 'BRL', favorito: acc.favorito ?? false, error: data.error.message }
             return {
               id: acc.id,
               name: data.name ?? acc.name,
               currency: data.currency ?? 'BRL',
               balance: centsToDecimal(data.balance),
+              favorito: acc.favorito ?? false,
             }
           } catch {
-            return { id: acc.id, name: acc.name, balance: null, currency: 'BRL', error: 'Erro ao buscar' }
+            return { id: acc.id, name: acc.name, balance: null, currency: 'BRL', favorito: acc.favorito ?? false, error: 'Erro ao buscar' }
           }
         })
       )

@@ -276,7 +276,7 @@ export default function FacebookAdsPage() {
     loadingConfig, loadingData, error,
     adsets, ads, expandedCampaigns, expandedAdsets, loadingItems, expandErrors,
     expandCampaign, expandAdset,
-    salvarConfig, refresh,
+    salvarConfig, toggleFavorito, refresh,
   } = useFacebookAds()
 
   const [statusTab, setStatusTab] = useState<CampaignStatusTab>('ACTIVE')
@@ -342,14 +342,24 @@ export default function FacebookAdsPage() {
             {/* Seletor de conta */}
             <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1 flex-wrap mb-4">
               {accounts.map(acc => (
-                <button key={acc.id} onClick={() => setSelectedAccountId(acc.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                    selectedAccountId === acc.id
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}>
-                  {acc.id === config?.defaultAccountId ? '★ ' : ''}{acc.name}
-                </button>
+                <div key={acc.id} className="flex items-center gap-0.5">
+                  <button onClick={() => setSelectedAccountId(acc.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                      selectedAccountId === acc.id
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}>
+                    {acc.id === config?.defaultAccountId ? '★ ' : ''}{acc.name}
+                  </button>
+                  <button
+                    onClick={() => toggleFavorito(acc.id)}
+                    title={acc.favorito ? 'Remover dos favoritos do popup' : 'Favoritar no popup de saldo'}
+                    className="p-1 rounded transition-colors hover:bg-gray-100"
+                    style={{ color: acc.favorito ? '#F59E0B' : '#D1D5DB', fontSize: 12, lineHeight: 1 }}
+                  >
+                    ★
+                  </button>
+                </div>
               ))}
             </div>
 
