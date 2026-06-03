@@ -14,6 +14,7 @@ async function buscarNomeEmpresaComCache(cnpj: string): Promise<string | null> {
   if (memoriaCache.has(digits)) return memoriaCache.get(digits)!
 
   // 2. Cache no Firestore (persiste entre instâncias e deploys)
+  if (!adminDb) return await buscarNaBrasilAPI(digits)
   const docRef = adminDb.collection('cnpj_cache').doc(digits)
   const snap = await docRef.get()
   if (snap.exists) {

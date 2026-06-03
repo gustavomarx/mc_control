@@ -239,8 +239,9 @@ export default function ExtratoPage() {
       fd.append('file', file)
       const res = await fetch('/api/extrato', { method: 'POST', body: fd })
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error ?? 'Erro ao processar PDF')
+        let msg = 'Erro ao processar PDF'
+        try { const d = await res.json(); msg = d.error ?? msg } catch { /* resposta não é JSON */ }
+        throw new Error(msg)
       }
       const data: ResultadoParse = await res.json()
       setResultado(data)

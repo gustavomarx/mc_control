@@ -23,6 +23,13 @@ function initAdmin() {
   }
 }
 
-initAdmin()
+try {
+  initAdmin()
+} catch { /* sem credenciais em build time */ }
 
-export const adminDb = getFirestore()
+let _adminDb: ReturnType<typeof getFirestore> | null = null
+try {
+  _adminDb = getFirestore()
+} catch { /* app não inicializado — rotas que usam adminDb retornarão erro JSON em runtime */ }
+
+export const adminDb = _adminDb as ReturnType<typeof getFirestore>
