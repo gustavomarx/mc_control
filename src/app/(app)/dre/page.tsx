@@ -129,6 +129,18 @@ export default function DrePage() {
   const resultadoOp      = receitaLiquida + despFixas + despVariaveis
   const gapAvec          = avecTotal - receitaBruta
 
+  // Diagnóstico: entradas do extrato não classificadas como Receita
+  const entradasExtrato  = transacoes.filter(t => t.valor > 0).reduce((s, t) => s + t.valor, 0)
+  const entradasNaoReceita = transacoes.filter(t => t.valor > 0 && t.tipo1 !== 'Receita')
+  const totalNaoReceita  = entradasNaoReceita.reduce((s, t) => s + t.valor, 0)
+  const tiposNaoReceita  = Array.from(
+    entradasNaoReceita.reduce((m, t) => {
+      const k = t.tipo1 || 'Sem categoria'
+      m.set(k, (m.get(k) ?? 0) + t.valor)
+      return m
+    }, new Map<string, number>())
+  ).sort((a, b) => b[1] - a[1])
+
   useEffect(() => {
     if (etapa === 2 && extratos.length === 0) {
       setCarregandoExtratos(true)
@@ -532,6 +544,35 @@ export default function DrePage() {
             </div>
           ))}
         </div>
+
+        {/* Diagnóstico: gap extrato → receita */}
+        {!carregando && totalNaoReceita > 0 && (
+          <div className="mb-5 bg-sky-50 border border-sky-200 rounded-lg px-4 py-3">
+            <p className="text-xs font-semibold text-sky-700 mb-2">
+              Entradas no extrato não classificadas como Receita
+            </p>
+            <div className="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Total entradas no extrato</span>
+              <span className="font-medium tabular-nums text-gray-800">{formatBRL(entradasExtrato)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-600 mb-2">
+              <span>Classificado como Receita no DRE</span>
+              <span className="font-medium tabular-nums text-green-700">{formatBRL(receitaBruta)}</span>
+            </div>
+            <div className="border-t border-sky-200 pt-2 mb-2">
+              {tiposNaoReceita.map(([tipo, val]) => (
+                <div key={tipo} className="flex justify-between text-xs text-gray-500">
+                  <span className="italic">{tipo}</span>
+                  <span className="tabular-nums">{formatBRL(val)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between text-xs font-semibold text-sky-700 border-t border-sky-200 pt-2">
+              <span>Total fora da Receita</span>
+              <span className="tabular-nums">{formatBRL(totalNaoReceita)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Faturamento AVEC */}
         {avecTotal > 0 && (
