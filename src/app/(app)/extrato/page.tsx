@@ -430,6 +430,8 @@ export default function ExtratoPage() {
   const pendentes = ativas.filter(r => !r.categoria).length
   const totalEntradas = ativas.filter(r => r.tipo === 'C').reduce((s, r) => s + r.valor, 0)
   const totalSaidas = ativas.filter(r => r.tipo === 'D').reduce((s, r) => s + r.valor, 0)
+  const entradasFiltradas = rowsFiltrados.filter(r => !r.excluir && r.tipo === 'C').reduce((s, r) => s + r.valor, 0)
+  const saidasFiltradas = rowsFiltrados.filter(r => !r.excluir && r.tipo === 'D').reduce((s, r) => s + r.valor, 0)
 
   return (
     <div className="flex flex-col h-full">
@@ -491,7 +493,7 @@ export default function ExtratoPage() {
             </div>
 
             {/* Busca */}
-            <div className="mb-3 flex gap-2">
+            <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Buscar por descrição, empresa, CNPJ ou categoria..."
@@ -505,6 +507,17 @@ export default function ExtratoPage() {
               >
                 + Categoria
               </button>
+            </div>
+
+            {/* Consolidado da busca */}
+            <div className={`mb-3 flex items-center gap-4 px-4 py-2 rounded-lg text-xs transition-all ${busca ? 'bg-gray-50 border border-gray-200 mt-2' : 'mt-0 h-0 overflow-hidden opacity-0 pointer-events-none'}`}>
+              <span className="text-gray-400 font-medium">{rowsFiltrados.filter(r => !r.excluir).length} resultado{rowsFiltrados.filter(r => !r.excluir).length !== 1 ? 's' : ''}</span>
+              <span className="text-gray-300">·</span>
+              <span>Entradas: <strong className="text-emerald-700 tabular-nums">{formatBRL(entradasFiltradas)}</strong></span>
+              <span className="text-gray-300">·</span>
+              <span>Saídas: <strong className="text-red-600 tabular-nums">{formatBRL(saidasFiltradas)}</strong></span>
+              <span className="text-gray-300">·</span>
+              <span>Saldo: <strong className={`tabular-nums ${entradasFiltradas - saidasFiltradas >= 0 ? 'text-gray-700' : 'text-red-600'}`}>{formatBRL(entradasFiltradas - saidasFiltradas)}</strong></span>
             </div>
 
             {/* Action bar */}
