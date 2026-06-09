@@ -69,12 +69,18 @@ function cellToStr(val: unknown): string {
 }
 
 // Busca coluna por múltiplos nomes possíveis (case-insensitive, sem acento)
+// Constrói mapa normalizado de todas as colunas de uma vez para evitar
+// que variações de case/acento do AVEC causem falha silenciosa
 function getCol(row: Record<string, unknown>, ...names: string[]): string {
   const norm = (s: string) =>
     s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const normalized: Record<string, string> = {}
+  for (const [k, v] of Object.entries(row)) {
+    normalized[norm(k)] = cellToStr(v)
+  }
   for (const name of names) {
-    const key = Object.keys(row).find(k => norm(k) === norm(name))
-    if (key !== undefined) return cellToStr(row[key])
+    const val = normalized[norm(name)]
+    if (val !== undefined) return val
   }
   return ''
 }
@@ -125,18 +131,18 @@ export async function parseAgendaAvec(file: File): Promise<AgendaAvec[]> {
     }
 
     const s = semanas.get(chave)!
-    const status = String(row['Status'] ?? '') as StatusAgendamento
-    const profissional = String(row['Profissional'] ?? '').trim()
-    const servico = String(row['Serviço'] ?? row['Servico'] ?? '').trim()
-    const obs = String(row['Observação'] ?? row['Observacao'] ?? '').trim()
-    const dataCadastroCliente = String(row['Data Cadastro Cliente'] ?? '')
+    const status = getCol(row, 'Status', 'Status do Agendamento') as StatusAgendamento
+    const profissional = getCol(row, 'Profissional', 'Profissional/Serviço', 'Profissional/Servico')
+    const servico = getCol(row, 'Serviço', 'Servico', 'Serviço/Produto', 'Servico/Produto', 'Produto', 'Descrição', 'Descricao')
+    const obs = getCol(row, 'Observação', 'Observacao', 'Obs', 'Observações', 'Observacoes')
+    const dataCadastroCliente = getCol(row, 'Data Cadastro Cliente', 'Data_Cadastro_Cliente', 'Data Cadastro', 'Dt Cadastro Cliente')
     const nova = isClienteNova(obs, dataCadastroCliente)
 
     const agendamento: AgendamentoAvec = {
       dataReserva: dataReservaStr,
-      hora: String(row['Hora'] ?? ''),
-      cliente: String(row['Cliente'] ?? '').trim(),
-      celular: String(row['Celular'] ?? '').trim(),
+      hora: getCol(row, 'Hora', 'Hora Início', 'Hora Inicio', 'Hr Inicio'),
+      cliente: getCol(row, 'Cliente', 'Nome', 'Nome Cliente', 'Nome do Cliente'),
+      celular: getCol(row, 'Celular', 'Telefone', 'Tel', 'Fone', 'Celular/WhatsApp', 'WhatsApp'),
       dataCadastroCliente,
       profissional,
       servico,
