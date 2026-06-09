@@ -325,9 +325,17 @@ export default function FacebookAdsPage() {
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 text-xs border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
               >
-                + Recarregar conta
+                + Recarregar Facebook
               </a>
             )}
+            <a
+              href="https://ads.google.com/aw/billing/summary?ocid=7574338487&euid=979797008&__u=6431099792&uscid=7574338487&__c=4545910463&authuser=0&subid=br-pt-ha-awa-bk-c-lcg!o3-aluminum%7Cib:2387565277%7Cib:8016481541%7Cib:6079319977%7C~CjwKCAjw857RBhAgEiwAI-1yKD-TXtjuzTQDfKbRSw7C9OJfXvHTTiaOjR4pNJzE8jlHqZMiuzyIxRoCsSIQAvD_BwE~140965879609~aud-1026383325480:kwd-94527731~17334788550~807326813731-ahpm-0000000200-0000000001"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 text-xs border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors"
+            >
+              + Recarregar Google
+            </a>
             <button onClick={() => { setConfigToken(''); setConfigDefault(config?.defaultAccountId ?? ''); setShowConfig(true) }}
               className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-white transition-colors">
               ⚙ Configurar

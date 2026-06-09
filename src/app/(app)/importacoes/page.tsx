@@ -37,21 +37,44 @@ function ModalPeriodo({
   const primeiroDia = hoje.slice(0, 8) + '01'
   const [inicio, setInicio] = useState(primeiroDia)
   const [fim, setFim] = useState(hoje)
+  const [presetAtivo, setPresetAtivo] = useState<string | null>(null)
+
+  function aplicarPreset(p: Preset) {
+    setInicio(p.inicio)
+    setFim(p.fim)
+    setPresetAtivo(p.label)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-1">Período do relatório</h2>
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-xs text-gray-500 mb-3">
           Preencha o mesmo período usado no AVEC. Sugestão: dia 1 do mês até hoje.
         </p>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {PRESETS_PERIODO.map(p => (
+            <button
+              key={p.label}
+              onClick={() => aplicarPreset(p)}
+              className={[
+                'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+                presetAtivo === p.label
+                  ? 'bg-rose-700 text-white border-rose-700'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:text-rose-700',
+              ].join(' ')}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Data início</label>
             <input
               type="date"
               value={inicio}
-              onChange={e => setInicio(e.target.value)}
+              onChange={e => { setInicio(e.target.value); setPresetAtivo(null) }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
             />
           </div>
@@ -60,7 +83,7 @@ function ModalPeriodo({
             <input
               type="date"
               value={fim}
-              onChange={e => setFim(e.target.value)}
+              onChange={e => { setFim(e.target.value); setPresetAtivo(null) }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
             />
           </div>
@@ -293,6 +316,45 @@ const AVEC_LABELS: Record<string, string> = {
 
 const MESES_ABREV_IMPORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
+type Preset = { label: string; inicio: string; fim: string }
+
+function gerarPresets(): Preset[] {
+  const hoje = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const ultimoDia = (ano: number, mes: number) => new Date(ano, mes, 0).getDate()
+  const fmtDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+  const mesAtualD = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+  const mesPassadoD = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1)
+  const inicio3D = new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1)
+  const fim3p3D = new Date(hoje.getFullYear(), hoje.getMonth() + 4, 0)
+
+  return [
+    {
+      label: 'Mês atual',
+      inicio: fmtDate(mesAtualD),
+      fim: `${hoje.getFullYear()}-${pad(hoje.getMonth() + 1)}-${pad(ultimoDia(hoje.getFullYear(), hoje.getMonth() + 1))}`,
+    },
+    {
+      label: 'Mês passado',
+      inicio: fmtDate(mesPassadoD),
+      fim: `${mesPassadoD.getFullYear()}-${pad(mesPassadoD.getMonth() + 1)}-${pad(ultimoDia(mesPassadoD.getFullYear(), mesPassadoD.getMonth() + 1))}`,
+    },
+    {
+      label: 'Últ. 3 meses',
+      inicio: fmtDate(inicio3D),
+      fim: hoje.toISOString().slice(0, 10),
+    },
+    {
+      label: 'Últ. 3 + próx. 3',
+      inicio: fmtDate(inicio3D),
+      fim: fmtDate(fim3p3D),
+    },
+  ]
+}
+
+const PRESETS_PERIODO = gerarPresets()
+
 function gerarMeses(n = 13): { value: string; label: string }[] {
   const lista = []
   const agora = new Date()
@@ -349,6 +411,14 @@ function ModalImportarAvec({
   onExecutar: () => void
   onFechar: () => void
 }) {
+  const [presetAtivo, setPresetAtivo] = useState<string>('Últ. 3 + próx. 3')
+
+  function aplicarPreset(p: Preset) {
+    onInicio(p.inicio)
+    onFim(p.fim)
+    setPresetAtivo(p.label)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
@@ -385,11 +455,27 @@ function ModalImportarAvec({
             {/* Período */}
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Período</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRESETS_PERIODO.map(p => (
+                  <button
+                    key={p.label}
+                    onClick={() => aplicarPreset(p)}
+                    className={[
+                      'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+                      presetAtivo === p.label
+                        ? 'bg-rose-700 text-white border-rose-700'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:text-rose-700',
+                    ].join(' ')}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center gap-2">
-                <input type="date" value={inicio} onChange={e => onInicio(e.target.value)}
+                <input type="date" value={inicio} onChange={e => { onInicio(e.target.value); setPresetAtivo('') }}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" />
                 <span className="text-xs text-gray-400">até</span>
-                <input type="date" value={fim} onChange={e => onFim(e.target.value)}
+                <input type="date" value={fim} onChange={e => { onFim(e.target.value); setPresetAtivo('') }}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400" />
               </div>
             </div>
@@ -494,8 +580,9 @@ export default function ImportacoesPage() {
   const [avecStatus, setAvecStatus] = useState<{ id: string; icon: string; text: string; state: string }[]>([])
 
   const hoje = new Date()
-  const [avecInicio, setAvecInicio] = useState(`${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`)
-  const [avecFim, setAvecFim] = useState(hoje.toISOString().slice(0, 10))
+  const _defaultPreset = PRESETS_PERIODO.find(p => p.label === 'Últ. 3 + próx. 3')!
+  const [avecInicio, setAvecInicio] = useState(_defaultPreset.inicio)
+  const [avecFim, setAvecFim] = useState(_defaultPreset.fim)
   const [avecKeys, setAvecKeys] = useState<Set<string>>(new Set(['agenda', 'aniversariantes', 'comissoes', 'caixa']))
   const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
   const [avecComissoesMes, setAvecComissoesMes] = useState(mesAtual)
