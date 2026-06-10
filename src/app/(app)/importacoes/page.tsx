@@ -653,7 +653,7 @@ export default function ImportacoesPage() {
     setAvecRunning(true)
     window.postMessage({
       type: 'MC_AVEC_IMPORT',
-      detail: { relatorios, inicio: avecInicio, fim: avecFim, mcUrl: window.location.origin },
+      detail: { relatorios, inicio: avecInicio, fim: avecFim, comissoesMes: avecComissoesMes, mcUrl: window.location.origin },
     }, '*')
   }
   const [pendenteComissoes, setPendenteComissoes] = useState<Awaited<ReturnType<typeof parseComissoes>> | null>(null)
