@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
       if (!adsetId) return NextResponse.json({ error: 'adsetId obrigatório' }, { status: 400 })
 
       const res = await fetch(
-        `${FB_API}/${adsetId}/ads?fields=name,status,creative{title,body,image_url,thumbnail_url,object_story_spec{link_data{message,name,description,picture,call_to_action},video_data{message,title,description,image_url,call_to_action}}}&limit=50&access_token=${token}`
+        `${FB_API}/${adsetId}/ads?fields=name,status,creative{title,body,image_url,thumbnail_url,object_story_spec{link_data{message,name,picture,call_to_action},video_data{message,title,image_url,call_to_action}}}&limit=50&access_token=${token}`
       )
       const data = await res.json()
       if (data.error) return NextResponse.json({ error: data.error.message }, { status: 400 })
