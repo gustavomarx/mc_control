@@ -166,8 +166,58 @@ scripts/seed.ts
 3. **DRE** — grupos por `tipo1`, KPIs, gap AVEC vs extrato, exportação Excel
 
 ## Extrato Bancário (Sicoob)
-- Upload PDF → POST `/api/extrato` → `parseSicoob` → enriquecimento CNPJ (BrasilAPI) → JSON
+- Upload PDF **ou XLSX** → POST `/api/extrato` → parser pela extensão → enriquecimento CNPJ (BrasilAPI) → JSON
+  - PDF: `parseSicoob` (`src/lib/sicoob-parser.ts`)
+  - XLSX do internet banking: `parseSicoobXlsx` (`src/lib/sicoob-xlsx-parser.ts`) — aba `LANÇAMENTOS`
+    (DATA | DOCUMENTO | HISTÓRICO | INFORMAÇÕES COMPLEMENTARES | VALOR com sinal)
+  - O XLSX traz histórico por extenso; `HISTORICO_PDF` converte para a abreviação do PDF
+    (ex.: `PIX EMITIDO OUTRA IF` → `PIX EMIT.OUTRA IF`, `CR COMPRAS MAESTRO` → `CR CMP MST`)
+    para que palavras-chave das categorias continuem batendo. `descricaoOriginal` = `HIST INFO DOC.: <documento>`
+  - Mês do extrato XLSX = mês com mais lançamentos. Sem mapeamento ainda: `DÉB.TRANSF.CONTAS DIF.TIT. INTERCREDIS`,
+    `CRÉDITO DEVOLUÇÃO PIX`, `DÉBITO RECARGA PRÉ-PAGA` (ficam como vêm)
 - Cache CNPJ em `cnpj_cache/{digits}`
+- Categorização automática: `autoCategoria()` sobre `descricaoOriginal + nomeEmpresa`, por `ordem`, primeira palavra-chave que bate (substring, case-insensitive)
+  - Cuidado: palavra-chave curta pega texto demais (ex.: `DAS` em Impostos)
+
+## Contabilidade (FMICH) — export e DE-PARA
+- Contador: FMICH Contabilidade (CRC-SC 047480/O-7). Enviamos `Extrato_Contador_StudioMeusCilios_<MES>-<AA>.xlsx`
+  gerado em `/dre` etapa 3 (`exportarContabilidade` em `src/app/(app)/dre/page.tsx`)
+- Colunas: Data | Lançamento | Origem | Valor | Observação | Tipo1 | Tipo2 | **Conta contábil** (também na aba EntradaSaída e no preview; "—" amarelo = sem conta)
+- `Categoria.contaContabil` (Firestore `categorias`), editável em Extrato › Categorias › Editar
+- `contaContabilDe(t, categorias)` (`src/lib/categorias.ts`): categorias com mesmo `tipo2` → escolhe pela palavra-chave presente na descrição; senão a primeira com conta
+- Plano de contas observado no razão de jun/26:
+  | Conta | Uso | Categoria mc_control |
+  |---|---|---|
+  | 1000 | Recebimento de cliente / Pix recebido (também contrapartida de "troco") | Receita |
+  | 1010 | Distribuição de lucro ao sócio Gustavo | Distribuição de lucro, Financiamento |
+  | 325 | Comissão | Comissões |
+  | 341 | Aluguel sala | Aluguel |
+  | 350 | Tarifas bancárias | Bancárias e Financeiras |
+  | 354 / 356 | Celesc / Claro | Energia, internet, telefone (por palavra-chave) |
+  | 362 | Serviço tomado (99, Simone, Maycon, Cappta) | Serviços |
+  | 364 | Royalties | Royalties |
+  | 366 | Orsegups monitoramento | Sistemas (doc ORSEGUPS) |
+  | 479 | Receita Federal | Impostos |
+  | 493 | Doação (Comunidade Evangélica) | — (Pessoais sem conta) |
+  | 510 | Honorários FMICH | Contabilidade |
+  | 526 | Material consumo/uso/operacional | Material Operacional |
+  | 553 | Viagens Uber | Serviços (doc UBER) |
+  | 554 | Alimentação | Alimentação |
+  | 560 | Publicidade (Facebook e Google) | Marketing Local |
+  | sem código | "Empréstimo de sócio" / "Gastos com sistema" (resposta da FMICH, código não informado) | Empréstimo do sócio / Sistemas (AVEC, CRM…) |
+- Como a FMICH classifica: pelo texto do extrato. Pix para CPF que não reconhecem → "Pagamento de troco" (abate receita);
+  Pix para CPF do Gustavo (`***.758.610`) → distribuição de lucro; boleto sem nome (`DÉB.TIT.COMPE`) → aluguel.
+  Por isso a conta contábil sugerida vai no relatório.
+- Decisões (out/26):
+  - CPFs `765.720`, `487.612` e nome `GABRIELA COELHO` = **Comissões** (palavras-chave)
+  - Pix do Gustavo para a empresa = **Empréstimo do sócio** (não aporte, não receita) — kw `RECEBIMENTO PIX GUSTAVO PEIXOTO`
+  - Pix da empresa para o Gustavo = **Distribuição de lucro** (antiga categoria "Investimento/Resgate" renomeada; meses antigos mantêm o nome antigo e saem sem conta)
+  - Financiamento (boletos) → conta 1010 (retirada de lucro)
+  - Transferência "MESMA TIT." G&G (maquininha → conta) = Receita
+  - Google semanal = publicidade (560)
+- Jun/26 recategorizado no Firestore (48 lançamentos) conforme acima; razão de jun/26 conferido 366/366 por data+valor
+- Pendências: CPF `402.280` (comissão em jun) ainda não é palavra-chave; Pix para clientes marcados como Receita
+  (deveriam ser troco/devolução); próximo passo = conferir o razão de jul/26 do mesmo jeito
 
 ## proxy.ts (era middleware.ts)
 - Next.js 16 renomeou `middleware.ts` → `proxy.ts` com export `proxy()` em vez de `middleware()`
@@ -199,3 +249,4 @@ FIREBASE_SERVICE_ACCOUNT   ← JSON completo do service-account.json (uma linha)
 - Simples Nacional calculado apenas sobre faturamento declarado (cartão)
 - Dinheiro físico ~R$ 3.014/mês aparece no AVEC mas pode não aparecer no extrato — alertar gap
 - Trocos via Pix para clientes (média R$ 38) → categoria Receita/Devolução
+- Mandar à contabilidade sempre com conta contábil preenchida — sem isso eles chutam (ver seção Contabilidade)

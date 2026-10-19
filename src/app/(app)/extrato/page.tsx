@@ -76,6 +76,7 @@ export default function ExtratoPage() {
   const [modalGerenciar, setModalGerenciar] = useState(false)
   const [editandoCatId, setEditandoCatId] = useState<string | null>(null)
   const [kwInput, setKwInput] = useState('')
+  const [contaInput, setContaInput] = useState('')
   const [salvandoKw, setSalvandoKw] = useState(false)
   const [extratosSalvos, setExtratosSalvos] = useState<Extrato[]>([])
   const [carregandoLista, setCarregandoLista] = useState(false)
@@ -209,14 +210,16 @@ export default function ExtratoPage() {
   function abrirEdicaoKw(cat: Categoria) {
     setEditandoCatId(cat.id)
     setKwInput(cat.palavrasChave?.join(', ') ?? '')
+    setContaInput(cat.contaContabil ?? '')
   }
 
   async function salvarKw(cat: Categoria) {
     setSalvandoKw(true)
     const palavrasChave = kwInput.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
+    const contaContabil = contaInput.trim()
     try {
-      await updateCategoria(cat.id, { palavrasChave })
-      const catsAtualizadas = categorias.map(c => c.id === cat.id ? { ...c, palavrasChave } : c)
+      await updateCategoria(cat.id, { palavrasChave, contaContabil })
+      const catsAtualizadas = categorias.map(c => c.id === cat.id ? { ...c, palavrasChave, contaContabil } : c)
       setCategorias(catsAtualizadas)
       recategorizarPendentes(catsAtualizadas)
       setEditandoCatId(null)
@@ -239,7 +242,7 @@ export default function ExtratoPage() {
       fd.append('file', file)
       const res = await fetch('/api/extrato', { method: 'POST', body: fd })
       if (!res.ok) {
-        let msg = 'Erro ao processar PDF'
+        let msg = 'Erro ao processar extrato'
         try { const d = await res.json(); msg = d.error ?? msg } catch { /* resposta não é JSON */ }
         throw new Error(msg)
       }
@@ -264,7 +267,7 @@ export default function ExtratoPage() {
     e.preventDefault()
     setDragOver(false)
     const file = e.dataTransfer.files[0]
-    if (file?.type === 'application/pdf') processarPDF(file)
+    if (file && /\.(pdf|xlsx?)$/i.test(file.name)) processarPDF(file)
   }
 
   function setRow(id: string, patch: Partial<EditableRow>) {
@@ -586,10 +589,10 @@ export default function ExtratoPage() {
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
           >
-            <input ref={inputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileInput} />
+            <input ref={inputRef} type="file" accept=".pdf,.xlsx,.xls" className="hidden" onChange={handleFileInput} />
             <p className="text-2xl mb-3">📄</p>
-            <p className="text-sm font-medium text-gray-700">Arraste o PDF do Sicoob ou clique para selecionar</p>
-            <p className="text-xs text-gray-400 mt-1">Apenas arquivos .pdf</p>
+            <p className="text-sm font-medium text-gray-700">Arraste o extrato do Sicoob ou clique para selecionar</p>
+            <p className="text-xs text-gray-400 mt-1">PDF ou XLSX do internet banking</p>
           </div>
 
           {/* Extratos salvos */}
@@ -882,6 +885,17 @@ export default function ExtratoPage() {
                                 placeholder="PALAVRA1, PALAVRA2, ..."
                                 className="w-full px-2.5 py-1.5 text-xs border border-emerald-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-400 font-mono"
                               />
+                              <input
+                                type="text"
+                                value={contaInput}
+                                onChange={e => setContaInput(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') salvarKw(cat)
+                                  if (e.key === 'Escape') { setEditandoCatId(null); setKwInput('') }
+                                }}
+                                placeholder="Conta contábil (ex: 325)"
+                                className="w-full mt-1.5 px-2.5 py-1.5 text-xs border border-emerald-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-400 font-mono"
+                              />
                               <div className="flex gap-2 mt-1.5">
                                 <button
                                   onClick={() => salvarKw(cat)}
@@ -904,6 +918,9 @@ export default function ExtratoPage() {
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-gray-800 group-hover:text-emerald-700 transition-colors">
                                     {cat.tipo2}
+                                    {cat.contaContabil && (
+                                      <span className="ml-2 text-xs font-mono text-gray-400">conta {cat.contaContabil}</span>
+                                    )}
                                   </p>
                                   {cat.palavrasChave?.length > 0 ? (
                                     <p className="text-xs text-gray-400 font-mono truncate mt-0.5">

@@ -7,9 +7,11 @@ import {
   getTransacoesByExtrato,
   getDresConfigs,
   setDreConfig,
+  getCategorias,
 } from '@/lib/firestore'
 import { formatBRL } from '@/lib/utils'
-import type { Extrato, Transacao, DreConfig } from '@/types'
+import { contaContabilDe } from '@/lib/categorias'
+import type { Extrato, Transacao, DreConfig, Categoria } from '@/types'
 
 const MESES = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -113,6 +115,7 @@ export default function DrePage() {
   const [exportando, setExportando] = useState(false)
   const [modalContab, setModalContab] = useState(false)
   const [exportandoContab, setExportandoContab] = useState(false)
+  const [categorias, setCategorias] = useState<Categoria[]>([])
 
   // history
   const [historico, setHistorico] = useState<DreConfig[]>([])
@@ -140,6 +143,10 @@ export default function DrePage() {
       return m
     }, new Map<string, number>())
   ).sort((a, b) => b[1] - a[1])
+
+  useEffect(() => {
+    getCategorias().then(setCategorias)
+  }, [])
 
   useEffect(() => {
     if (etapa === 2 && extratos.length === 0) {
@@ -245,10 +252,10 @@ export default function DrePage() {
 
     // ── Sheet mensal ────────────────────────────────────────────────────────────
     const monthRows: (string | number | null)[][] = [
-      [mesLabel, null, null, null, null, null, null],
-      [null, null, 'Total entradas:', totalEntradas, null, null, null],
-      [null, null, 'Total saídas:',   totalSaidas,   null, null, null],
-      ['Data', 'Lançamento', 'Origem', 'Valor', 'Observação', 'Tipo1', 'Tipo2'],
+      [mesLabel, null, null, null, null, null, null, null],
+      [null, null, 'Total entradas:', totalEntradas, null, null, null, null],
+      [null, null, 'Total saídas:',   totalSaidas,   null, null, null, null],
+      ['Data', 'Lançamento', 'Origem', 'Valor', 'Observação', 'Tipo1', 'Tipo2', 'Conta contábil'],
     ]
     for (const t of sorted) {
       monthRows.push([
@@ -259,12 +266,13 @@ export default function DrePage() {
         banco,
         mapTipo1Contab(t.tipo1),
         t.categoria || 'Outros',
+        contaContabilDe(t, categorias),
       ])
     }
     const wsMonth = XLSX.utils.aoa_to_sheet(monthRows)
     wsMonth['!cols'] = [
       { wch: 12 }, { wch: 52 }, { wch: 10 },
-      { wch: 14 }, { wch: 12 }, { wch: 25 }, { wch: 25 },
+      { wch: 14 }, { wch: 12 }, { wch: 25 }, { wch: 25 }, { wch: 14 },
     ]
     // Format date column as date for rows 4 onwards
     const rangeMes = XLSX.utils.decode_range(wsMonth['!ref'] ?? 'A1')
@@ -276,10 +284,10 @@ export default function DrePage() {
 
     // ── Sheet EntradaSaída ──────────────────────────────────────────────────────
     const esRows: (string | number | null)[][] = [
-      ['EntradaSaída — Consolidado', null, null, null, null],
-      [null, 'Total entradas:', totalEntradas, null, null],
-      [null, 'Total saídas:',   totalSaidas,   null, null],
-      ['Data', 'Descrição', 'Entrada', 'Saída', 'Categoria'],
+      ['EntradaSaída — Consolidado', null, null, null, null, null],
+      [null, 'Total entradas:', totalEntradas, null, null, null],
+      [null, 'Total saídas:',   totalSaidas,   null, null, null],
+      ['Data', 'Descrição', 'Entrada', 'Saída', 'Categoria', 'Conta contábil'],
     ]
     for (const t of sorted) {
       esRows.push([
@@ -288,10 +296,11 @@ export default function DrePage() {
         t.valor > 0 ? t.valor : null,
         t.valor < 0 ? t.valor : null,
         t.categoria || 'Outros',
+        contaContabilDe(t, categorias),
       ])
     }
     const wsES = XLSX.utils.aoa_to_sheet(esRows)
-    wsES['!cols'] = [{ wch: 12 }, { wch: 52 }, { wch: 14 }, { wch: 14 }, { wch: 25 }]
+    wsES['!cols'] = [{ wch: 12 }, { wch: 52 }, { wch: 14 }, { wch: 14 }, { wch: 25 }, { wch: 14 }]
     const rangeES = XLSX.utils.decode_range(wsES['!ref'] ?? 'A1')
     for (let r = 4; r <= rangeES.e.r; r++) {
       const cell = wsES[XLSX.utils.encode_cell({ r, c: 0 })]
@@ -763,7 +772,7 @@ export default function DrePage() {
                 <table className="w-full text-xs border-collapse">
                   <thead className="sticky top-0 bg-gray-100 border-b">
                     <tr>
-                      {['Data','Lançamento','Origem','Valor','Tipo1','Tipo2'].map(h => (
+                      {['Data','Lançamento','Origem','Valor','Tipo1','Tipo2','Conta'].map(h => (
                         <th key={h} className="text-left px-3 py-2 font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -782,6 +791,9 @@ export default function DrePage() {
                           </td>
                           <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{mapTipo1Contab(t.tipo1)}</td>
                           <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{t.categoria || 'Outros'}</td>
+                          <td className={`px-3 py-1.5 tabular-nums whitespace-nowrap ${contaContabilDe(t, categorias) ? 'text-gray-500' : 'text-amber-500'}`}>
+                            {contaContabilDe(t, categorias) || '—'}
+                          </td>
                         </tr>
                       )
                     })}

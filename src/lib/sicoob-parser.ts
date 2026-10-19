@@ -54,7 +54,7 @@ export function extrairCNPJ(desc: string): string | undefined {
   return `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12,14)}`
 }
 
-function deveIgnorar(desc: string): boolean {
+export function deveIgnorar(desc: string): boolean {
   return LINHAS_IGNORAR.some(r => r.test(desc))
 }
 
@@ -66,7 +66,7 @@ function parseValor(str: string): { valor: number; tipo: 'C' | 'D' } | null {
   return { valor, tipo: m[2] as 'C' | 'D' }
 }
 
-function limparDescricao(desc: string): string {
+export function limparDescricao(desc: string): string {
   return desc
     .replace(/\s+/g, ' ')
     .replace(/DOC\.:?\s*Pix/gi, '')

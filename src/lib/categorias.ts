@@ -17,3 +17,19 @@ export function autoCategoria(
   }
   return null
 }
+
+// Conta contábil sugerida para a transação. Quando várias categorias têm o
+// mesmo nome (ex.: Energia → CELESC / CLARO), usa a que tiver a palavra-chave
+// presente na descrição; senão a primeira com conta preenchida.
+export function contaContabilDe(
+  t: { categoria: string; descricaoOriginal: string },
+  categorias: Categoria[],
+): string {
+  const candidatas = categorias.filter(c => c.tipo2 === t.categoria)
+  const lower = (t.descricaoOriginal || '').toLowerCase()
+  const porKw = candidatas.find(c =>
+    (c.palavrasChave ?? []).some(kw => kw && lower.includes(kw.toLowerCase())),
+  )
+  if (porKw) return porKw.contaContabil ?? ''
+  return candidatas.find(c => c.contaContabil)?.contaContabil ?? ''
+}

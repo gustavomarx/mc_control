@@ -210,6 +210,7 @@ export interface Categoria {
   tipo2: string
   ativa: boolean
   ordem: number
+  contaContabil?: string   // código da conta no plano da contabilidade (FMICH)
 }
 
 // ── Configurações ─────────────────────────────────────────────────────────────

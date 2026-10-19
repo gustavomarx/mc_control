@@ -4,6 +4,7 @@ export const maxDuration = 30
 import { NextResponse } from 'next/server'
 import { PDFParse } from 'pdf-parse'
 import { parseSicoob } from '@/lib/sicoob-parser'
+import { parseSicoobXlsx } from '@/lib/sicoob-xlsx-parser'
 import { adminDb } from '@/lib/firebase-admin'
 import type { LancamentoParsed } from '@/lib/sicoob-parser'
 
@@ -82,11 +83,15 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const parser = new PDFParse({ data: buffer })
-    const textResult = await parser.getText({ cellSeparator: '  ', pageJoiner: '\n' })
-    await parser.destroy()
-
-    const resultado = parseSicoob(textResult.text)
+    let resultado
+    if (/\.xlsx?$/i.test(file.name)) {
+      resultado = parseSicoobXlsx(buffer)
+    } else {
+      const parser = new PDFParse({ data: buffer })
+      const textResult = await parser.getText({ cellSeparator: '  ', pageJoiner: '\n' })
+      await parser.destroy()
+      resultado = parseSicoob(textResult.text)
+    }
     resultado.lancamentos = await enriquecerComCNPJ(resultado.lancamentos)
 
     return NextResponse.json(resultado)
@@ -94,7 +99,7 @@ export async function POST(request: Request) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[api/extrato]', msg)
     return NextResponse.json(
-      { error: process.env.NODE_ENV === 'development' ? msg : 'Falha ao processar o PDF. Verifique se é um extrato Sicoob válido.' },
+      { error: process.env.NODE_ENV === 'development' ? msg : 'Falha ao processar o arquivo. Verifique se é um extrato Sicoob válido (PDF ou XLSX).' },
       { status: 500 },
     )
   }
