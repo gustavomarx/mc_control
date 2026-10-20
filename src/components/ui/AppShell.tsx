@@ -6,7 +6,7 @@ import Sidebar from './Sidebar'
 import PopupSaldoFacebook, { SESSION_KEY } from './PopupSaldoFacebook'
 import { useAuth } from '@/contexts/AuthContext'
 
-const ROTAS_ACESSIVEIS = ['/mensagens', '/tarefas', '/agenda', '/crm', '/comissoes', '/caixa', '/facebook-ads', '/home']
+const ROTAS_ACESSIVEIS = ['/mensagens', '/tarefas', '/agenda', '/crm', '/comissoes', '/caixa', '/facebook-ads', '/compras', '/home']
 
 interface ContaBaixa {
   id: string

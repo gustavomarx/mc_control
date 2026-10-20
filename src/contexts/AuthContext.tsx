@@ -75,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (match('/caixa')) return p.caixa
     if (ROTAS_FINANCEIRO.some(r => match(r))) return p.financeiro
     if (match('/facebook-ads')) return p.facebook_ads
+    if (match('/compras')) return !!p.compras
     return false
   }
 

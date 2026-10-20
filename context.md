@@ -179,6 +179,17 @@ scripts/seed.ts
 - Categorização automática: `autoCategoria()` sobre `descricaoOriginal + nomeEmpresa`, por `ordem`, primeira palavra-chave que bate (substring, case-insensitive)
   - Cuidado: palavra-chave curta pega texto demais (ex.: `DAS` em Impostos)
 
+## Módulo Compras (`/compras`)
+- Lançador de compras de material (substitui a aba COMPRAS da planilha "Agendamentos")
+- Permissão individual `permissoes.compras` (Usuários › Módulos). Aparece no menu Financeiro mesmo sem `financeiro`
+- Coleção `compras`: um doc por item — `data, material, quantidade, valorUnitario, valor (qtd×unit), loja, pedido?, loteId, ordem, criadoEm, criadoPor, criadoPorNome, atualizadoEm?`
+  - `loteId` agrupa os itens lançados juntos; "Editar" carrega o lançamento inteiro no formulário (`salvarLote` atualiza/cria/apaga em batch)
+- Autocomplete: `compras_lojas` e `compras_materiais` (doc id = nome normalizado em maiúsculas), alimentados a cada lançamento/edição
+  - Busca por todas as palavras em qualquer posição, sem acento
+- Material e loja sempre em MAIÚSCULAS; valor unitário com máscara de moeda (dígitos entram pelos centavos)
+- Formulário fixo à esquerda (3 linhas iniciais); tabela à direita ordenada pelo último lançamento, com filtro e ordenação por coluna
+- Hook: `src/hooks/useCompras.ts` (`useCompras(mes, ano)`, `useLojasCompras`, `useMateriaisCompras`)
+
 ## Contabilidade (FMICH) — export e DE-PARA
 - Contador: FMICH Contabilidade (CRC-SC 047480/O-7). Enviamos `Extrato_Contador_StudioMeusCilios_<MES>-<AA>.xlsx`
   gerado em `/dre` etapa 3 (`exportarContabilidade` em `src/app/(app)/dre/page.tsx`)

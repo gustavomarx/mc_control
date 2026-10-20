@@ -21,6 +21,7 @@ const MODULOS: { key: keyof Omit<PermissoesUsuario, 'tarefasNivel'>; label: stri
   { key: 'caixa',      label: 'Caixa' },
   { key: 'financeiro', label: 'Financeiro' },
   { key: 'facebook_ads', label: 'Facebook Ads' },
+  { key: 'compras',    label: 'Compras' },
 ]
 
 export default function UsuariosPage() {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login']
-const ROTAS_ATENDENTE = ['/mensagens', '/tarefas', '/agenda', '/crm']
+const ROTAS_ATENDENTE = ['/mensagens', '/tarefas', '/agenda', '/crm', '/compras']
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl

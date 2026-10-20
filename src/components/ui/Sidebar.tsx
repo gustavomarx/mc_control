@@ -23,6 +23,7 @@ const NAV_FINANCEIRO = [
   { href: '/extrato', label: 'Extrato Bancário' },
   { href: '/contas', label: 'Contas a Pagar' },
   { href: '/dre', label: 'DRE Mensal' },
+  { href: '/compras', label: 'Compras' },
 ]
 
 interface SidebarProps {
@@ -118,7 +119,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
       p?.comissoes  && { href: '/comissoes',  label: 'Comissões' },
       p?.caixa      && { href: '/caixa',      label: 'Caixa' },
     ].filter(Boolean) as { href: string; label: string }[]
-    const financeiro = p?.financeiro ? NAV_FINANCEIRO : []
+    // Compras é liberado individualmente, mesmo sem o restante do financeiro
+    const financeiro = NAV_FINANCEIRO.filter(item =>
+      item.href === '/compras' ? p?.compras : p?.financeiro,
+    )
 
     return (
       <aside style={sidebarStyle}>

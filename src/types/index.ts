@@ -15,6 +15,7 @@ export interface PermissoesUsuario {
   caixa: boolean
   financeiro: boolean
   facebook_ads: boolean
+  compras: boolean
 }
 
 export const PERMISSOES_PADRAO: PermissoesUsuario = {
@@ -27,6 +28,7 @@ export const PERMISSOES_PADRAO: PermissoesUsuario = {
   caixa: false,
   financeiro: false,
   facebook_ads: false,
+  compras: false,
 }
 
 export interface Usuario {
@@ -199,6 +201,26 @@ export interface DreMensal {
   margem: number
   pontoEquilibrio: number
   geradoEm: Timestamp
+}
+
+// ── Compra ────────────────────────────────────────────────────────────────────
+
+// Uma linha por item comprado (espelha a planilha COMPRAS)
+export interface Compra {
+  id: string
+  data: Timestamp           // data da compra
+  material: string
+  quantidade: number
+  valorUnitario: number
+  valor: number             // total da linha = quantidade × valorUnitario
+  loja: string
+  pedido?: string           // nº do pedido do fornecedor
+  loteId: string            // agrupa os itens lançados juntos (um lançamento = um lote)
+  ordem: number             // posição do item dentro do lote
+  criadoEm: Timestamp
+  criadoPor: string         // uid
+  criadoPorNome: string
+  atualizadoEm?: Timestamp
 }
 
 // ── Categoria ─────────────────────────────────────────────────────────────────
