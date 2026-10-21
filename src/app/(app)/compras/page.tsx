@@ -69,9 +69,33 @@ interface ItemForm {
   material: string
   quantidade: string
   valorUnitario: string
+  total: string
+  base: 'unit' | 'total'   // campo digitado por último; o outro é calculado pela quantidade
 }
 
-const ITEM_VAZIO: ItemForm = { material: '', quantidade: '1', valorUnitario: '' }
+const ITEM_VAZIO: ItemForm = { material: '', quantidade: '1', valorUnitario: '', total: '', base: 'unit' }
+
+// Unitário pode ter mais de 2 casas quando vem de total ÷ qtd (ex.: 29,90 / 100 = 0,299)
+const fmtUnit = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+
+// Valores finais do item conforme o campo base
+function valoresItem(it: ItemForm): { quantidade: number; valorUnitario: number; valor: number } {
+  const quantidade = parseNum(it.quantidade)
+  if (it.base === 'total') {
+    const valor = parseNum(it.total)
+    return { quantidade, valor, valorUnitario: quantidade > 0 ? Math.round(valor / quantidade * 10000) / 10000 : 0 }
+  }
+  const valorUnitario = parseNum(it.valorUnitario)
+  return { quantidade, valorUnitario, valor: Math.round(quantidade * valorUnitario * 100) / 100 }
+}
+
+// Recalcula o campo derivado depois de mudar qtd, unitário ou total
+function recalcular(it: ItemForm): ItemForm {
+  const { valorUnitario, valor } = valoresItem(it)
+  return it.base === 'total'
+    ? { ...it, valorUnitario: it.total ? fmtUnit(valorUnitario) : '' }
+    : { ...it, total: it.valorUnitario ? fmtMoeda(valor) : '' }
+}
 const LINHAS_INICIAIS = 3
 const novasLinhas = (n = LINHAS_INICIAIS): ItemForm[] => Array.from({ length: n }, () => ({ ...ITEM_VAZIO }))
 
@@ -95,7 +119,7 @@ const COLUNAS: {
   { key: 'material',      label: 'Material',    cls: 'min-w-[240px]',                 sort: c => norm(c.material),   texto: c => c.material },
   { key: 'quantidade',    label: 'Qtd',         cls: 'w-16', num: true,               sort: c => c.quantidade,       texto: c => c.quantidade.toLocaleString('pt-BR') },
   { key: 'loja',          label: 'Loja',        cls: 'min-w-[140px]',                 sort: c => norm(c.loja),       texto: c => c.loja },
-  { key: 'valorUnitario', label: 'Valor unit.', cls: 'w-28', num: true,               sort: c => c.valorUnitario,    texto: c => fmtMoeda(c.valorUnitario) },
+  { key: 'valorUnitario', label: 'Valor unit.', cls: 'w-28', num: true,               sort: c => c.valorUnitario,    texto: c => fmtUnit(c.valorUnitario) },
   { key: 'valor',         label: 'Total',       cls: 'w-28', num: true,               sort: c => c.valor,            texto: c => fmtMoeda(c.valor) },
 ]
 
@@ -174,7 +198,7 @@ export default function ComprasPage() {
         <p className="text-sm text-gray-500 mt-0.5">Lançamento de materiais comprados</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[440px_1fr] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[480px_1fr] gap-6 items-start">
         {/* Lançamento — sempre aberto. key remonta o form ao trocar de lançamento */}
         {autor && (
           <FormCompra
@@ -283,7 +307,7 @@ export default function ComprasPage() {
                       <td className="px-3 py-2 text-gray-800">{c.material}</td>
                       <td className="px-3 py-2 tabular-nums text-right text-gray-600">{c.quantidade.toLocaleString('pt-BR')}</td>
                       <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{c.loja}</td>
-                      <td className="px-3 py-2 tabular-nums text-right text-gray-600 whitespace-nowrap">{formatBRL(c.valorUnitario)}</td>
+                      <td className="px-3 py-2 tabular-nums text-right text-gray-600 whitespace-nowrap">R$ {fmtUnit(c.valorUnitario)}</td>
                       <td className="px-3 py-2 tabular-nums text-right font-medium text-gray-900 whitespace-nowrap">{formatBRL(c.valor)}</td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">
                         <button onClick={() => setEditandoGrupo(grupoDe(c))} className="text-xs text-emerald-700 hover:underline mr-3">Editar</button>
@@ -384,7 +408,10 @@ function FormCompra({ lojas, materiais, edicao, onLancar, onSalvarEdicao, onFimE
   const [loja, setLoja] = useState(base?.loja ?? '')
   const [pedido, setPedido] = useState(base?.pedido ?? '')
   const [itens, setItens] = useState<ItemForm[]>(() => edicao
-    ? edicao.map(c => ({ id: c.id, material: c.material, quantidade: numStr(c.quantidade), valorUnitario: fmtMoeda(c.valorUnitario) }))
+    ? edicao.map(c => ({
+        id: c.id, material: c.material, quantidade: numStr(c.quantidade),
+        valorUnitario: fmtUnit(c.valorUnitario), total: fmtMoeda(c.valor), base: 'total' as const,
+      }))
     : novasLinhas())
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -392,11 +419,11 @@ function FormCompra({ lojas, materiais, edicao, onLancar, onSalvarEdicao, onFimE
   const primeiroMaterial = useRef<HTMLInputElement>(null)
 
   function setItem(i: number, patch: Partial<ItemForm>) {
-    setItens(prev => prev.map((it, j) => j === i ? { ...it, ...patch } : it))
+    setItens(prev => prev.map((it, j) => j === i ? recalcular({ ...it, ...patch }) : it))
   }
 
   const preenchidos = itens.filter(it => it.material.trim())
-  const total = preenchidos.reduce((s, it) => s + parseNum(it.quantidade) * parseNum(it.valorUnitario), 0)
+  const total = preenchidos.reduce((s, it) => s + valoresItem(it).valor, 0)
 
   async function salvar() {
     setErro('')
@@ -405,15 +432,14 @@ function FormCompra({ lojas, materiais, edicao, onLancar, onSalvarEdicao, onFimE
     if (preenchidos.length === 0) { setErro('Preencha pelo menos um material.'); return }
     if (preenchidos.some(it => parseNum(it.quantidade) <= 0)) { setErro('Quantidade deve ser maior que zero.'); return }
     const payload: ItemSalvar[] = preenchidos.map(it => {
-      const quantidade = parseNum(it.quantidade)
-      const valorUnitario = parseNum(it.valorUnitario)
+      const { quantidade, valorUnitario, valor } = valoresItem(it)
       return {
         id: it.id,
         data: fromInputDate(data),
         material: it.material.trim().toUpperCase(),
         quantidade,
         valorUnitario,
-        valor: Math.round(quantidade * valorUnitario * 100) / 100,
+        valor,
         loja: loja.trim().toUpperCase(),
         pedido: pedido.trim() || undefined,
       }
@@ -480,12 +506,12 @@ function FormCompra({ lojas, materiais, edicao, onLancar, onSalvarEdicao, onFimE
       </div>
 
       <div className="mt-4">
-        <div className="grid grid-cols-[1fr_52px_88px_18px] gap-1.5 text-xs text-gray-500 mb-1">
-          <span>Material</span><span>Qtd</span><span>Valor unit.</span><span />
+        <div className="grid grid-cols-[1fr_46px_74px_82px_16px] gap-1.5 text-xs text-gray-500 mb-1">
+          <span>Material</span><span>Qtd</span><span>Valor unit.</span><span>Total</span><span />
         </div>
         <div className="space-y-1.5">
           {itens.map((it, i) => (
-            <div key={i} className="grid grid-cols-[1fr_52px_88px_18px] gap-1.5 items-center">
+            <div key={i} className="grid grid-cols-[1fr_46px_74px_82px_16px] gap-1.5 items-center">
               <Autocomplete
                 inputRef={i === 0 ? primeiroMaterial : undefined}
                 value={it.material}
@@ -503,9 +529,18 @@ function FormCompra({ lojas, materiais, edicao, onLancar, onSalvarEdicao, onFimE
               <input
                 type="text" inputMode="numeric"
                 value={it.valorUnitario}
-                onChange={e => setItem(i, { valorUnitario: mascaraMoeda(e.target.value) })}
+                onChange={e => setItem(i, { valorUnitario: mascaraMoeda(e.target.value), base: 'unit' })}
                 placeholder="0,00"
-                className={`${linhaCls} tabular-nums text-right`}
+                title={it.base === 'total' ? 'Calculado: total ÷ quantidade' : undefined}
+                className={`${linhaCls} tabular-nums text-right ${it.base === 'total' && it.total ? 'bg-gray-50 text-gray-500' : ''}`}
+              />
+              <input
+                type="text" inputMode="numeric"
+                value={it.total}
+                onChange={e => setItem(i, { total: mascaraMoeda(e.target.value), base: 'total' })}
+                placeholder="0,00"
+                title={it.base === 'unit' ? 'Calculado: quantidade × unitário' : undefined}
+                className={`${linhaCls} tabular-nums text-right ${it.base === 'unit' && it.valorUnitario ? 'bg-gray-50 text-gray-500' : ''}`}
               />
               <button
                 onClick={() => setItens(prev => prev.length > 1 ? prev.filter((_, j) => j !== i) : [{ ...ITEM_VAZIO }])}
