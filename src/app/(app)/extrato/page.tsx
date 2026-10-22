@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Timestamp } from 'firebase/firestore'
 import { useAuth } from '@/contexts/AuthContext'
-import { getCategorias, addCategoria, updateCategoria, getNomesCNPJ, addExtrato, updateExtrato, deleteExtrato, addTransacao, getExtratos, getTransacoesByExtrato, deleteTransacoesByExtrato } from '@/lib/firestore'
+import { getCategorias, addCategoria, updateCategoria, getNomesCNPJ, addExtrato, updateExtrato, deleteExtrato, addTransacao, getExtratos, getTransacoesByExtrato, deleteTransacoesByExtrato, getConfiguracoes } from '@/lib/firestore'
 import { autoCategoria } from '@/lib/categorias'
+import { alocarSocio, TIPO1_SOCIO, type MovSocio } from '@/lib/socio'
 import { formatBRL } from '@/lib/utils'
-import type { Categoria, Extrato } from '@/types'
+import type { Categoria, Extrato, Configuracoes } from '@/types'
 import type { LancamentoParsed, ResultadoParse } from '@/lib/sicoob-parser'
 import { extrairCNPJ } from '@/lib/sicoob-parser'
 
@@ -26,6 +27,16 @@ interface EditableRow {
   cnpj?: string
   nomeEmpresa?: string
   excluir: boolean
+}
+
+function movDaLinha(r: EditableRow): MovSocio {
+  const [dd, mm, yyyy] = r.data.split('/').map(Number)
+  return {
+    data: new Date(yyyy, mm - 1, dd).getTime(),
+    valor: r.tipo === 'C' ? r.valor : -r.valor,
+    categoria: r.categoria,
+    descricaoOriginal: r.descricaoOriginal,
+  }
 }
 
 function uid(): string {
@@ -84,8 +95,11 @@ export default function ExtratoPage() {
   const [excluindoExtratoId, setExcluindoExtratoId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const [config, setConfig] = useState<Configuracoes | null>(null)
+
   useEffect(() => {
     getCategorias().then(setCategorias)
+    getConfiguracoes().then(setConfig)
   }, [])
 
   const catOpcoes = Array.from(new Set(categorias.map(c => c.tipo2))).sort()
@@ -351,7 +365,21 @@ export default function ExtratoPage() {
     setSalvando(true)
     setErro(null)
     try {
-      const ativas = rows.filter(r => !r.excluir)
+      const ativasOriginais = rows.filter(r => !r.excluir)
+      // Retiradas do sócio: reparte em pagamento de empréstimo / pró-labore / distribuição (src/lib/socio.ts)
+      const { partes } = alocarSocio(ativasOriginais.map(movDaLinha), configSocio(resultado.mes, resultado.ano))
+      const ativas = ativasOriginais.flatMap((r, i) => {
+        const ps = partes.get(i)
+        if (!ps) return [r]
+        return ps.map((p, j) => ({
+          ...r,
+          _id: ps.length > 1 ? `${r._id}-${j}` : r._id,
+          valor: p.valor,
+          categoria: p.categoria,
+          tipo1: TIPO1_SOCIO,
+          descricao: ps.length > 1 ? `${r.descricao} (parte ${j + 1}/${ps.length})` : r.descricao,
+        }))
+      })
       const totalEntradas = ativas.filter(r => r.tipo === 'C').reduce((s, r) => s + r.valor, 0)
       const totalSaidas = ativas.filter(r => r.tipo === 'D').reduce((s, r) => s + r.valor, 0)
       const temPendente = ativas.some(r => !r.categoria)
@@ -429,7 +457,12 @@ export default function ExtratoPage() {
     if (inputRef.current) inputRef.current.value = ''
   }
 
+  function configSocio(mes: number, ano: number) {
+    return { mes, ano, proLaboreLiquido: config?.proLaboreLiquidoGustavo, proLaboreInicio: config?.proLaboreInicio }
+  }
+
   const ativas = rows.filter(r => !r.excluir)
+  const socio = resultado ? alocarSocio(ativas.map(movDaLinha), configSocio(resultado.mes, resultado.ano)).resumo : null
   const pendentes = ativas.filter(r => !r.categoria).length
   const totalEntradas = ativas.filter(r => r.tipo === 'C').reduce((s, r) => s + r.valor, 0)
   const totalSaidas = ativas.filter(r => r.tipo === 'D').reduce((s, r) => s + r.valor, 0)
@@ -494,6 +527,23 @@ export default function ExtratoPage() {
                 </p>
               </div>
             </div>
+
+            {/* Sócio no mês — aplicado ao salvar */}
+            {socio && (socio.emprestado > 0 || socio.pagamentoEmprestimo + socio.proLabore + socio.distribuicao > 0) && (
+              <div className="mb-3 px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-600 flex flex-wrap gap-x-5 gap-y-1">
+                <span className="font-semibold text-gray-800">Sócio no mês</span>
+                <span>Emprestou: <strong className="tabular-nums">{formatBRL(socio.emprestado)}</strong></span>
+                <span>Pagamento de empréstimo: <strong className="tabular-nums">{formatBRL(socio.pagamentoEmprestimo)}</strong></span>
+                {socio.proLaboreAplicavel && (
+                  <span>Pró-labore: <strong className="tabular-nums">{formatBRL(socio.proLabore)}</strong></span>
+                )}
+                <span>Distribuição de lucro: <strong className="tabular-nums">{formatBRL(socio.distribuicao)}</strong></span>
+                <span className="text-gray-400">Os Pix para o sócio são divididos assim ao salvar.</span>
+                {socio.proLaboreSemValor && (
+                  <span className="text-amber-600">Pró-labore líquido não configurado — tudo além do empréstimo vira distribuição.</span>
+                )}
+              </div>
+            )}
 
             {/* Busca */}
             <div className="flex gap-2">

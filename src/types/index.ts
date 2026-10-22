@@ -242,6 +242,8 @@ export interface Configuracoes {
   metaOperacional: number
   proLaboreGustavo: number
   proLaboreGabriela: number
+  proLaboreLiquidoGustavo?: number   // líquido do recibo (bruto − INSS) — usado na classificação das retiradas
+  proLaboreInicio?: string           // 'YYYY-MM' — mês em que o pró-labore começa
   totalProLabore: number
   percentualComissao: number
   percentualRoyalties: number

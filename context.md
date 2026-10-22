@@ -226,6 +226,15 @@ scripts/seed.ts
   - Financiamento (boletos) → conta 1010 (retirada de lucro)
   - Transferência "MESMA TIT." G&G (maquininha → conta) = Receita
   - Google semanal = publicidade (560)
+- **Retiradas do sócio (regra FMICH, out/26)** — `src/lib/socio.ts`, aplicada ao salvar o extrato (`/extrato`):
+  - Pix da empresa → CPF `758.610` é repartido, **só dentro do mês** (não acumula entre meses):
+    1. "Pagamento de empréstimo do sócio" até o total de "Empréstimo do sócio" (Pix do sócio → empresa) do mês
+    2. "Pró-labore" até `configuracoes/parametros.proLaboreLiquidoGustavo` (líquido do recibo), a partir de `proLaboreInicio` ('2026-10')
+    3. "Distribuição de lucro" o que exceder. Pix que cruza um limite vira 2 transações "(parte 1/2)"
+  - Resumo "Sócio no mês" aparece na revisão do extrato
+  - Conta pessoal paga pela empresa = Distribuição de lucro (categoria "Pessoais" desativada; CNPJ 21.545.674 Comunidade Evangélica → Distribuição)
+  - Vale de jul/26 em diante; fev–jun ficam como estão. Gabriela (765.720) = Comissões, decisão do Gustavo
+  - Jul/26: removido extrato PDF duplicado (ficou o XLSX) e reclassificado: emprestou 3.050 → pagamento 3.050, distribuição 5.239
 - Jun/26 recategorizado no Firestore (48 lançamentos) conforme acima; razão de jun/26 conferido 366/366 por data+valor
 - Pendências: CPF `402.280` (comissão em jun) ainda não é palavra-chave; Pix para clientes marcados como Receita
   (deveriam ser troco/devolução); próximo passo = conferir o razão de jul/26 do mesmo jeito
