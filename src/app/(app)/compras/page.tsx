@@ -56,7 +56,7 @@ function fmtDataHora(ts: Timestamp): string {
 
 // Sem acento e minúsculo, para busca
 function norm(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 }
 
 // Itens lançados juntos (lote). Itens antigos sem loteId agrupam por criação + autor.
