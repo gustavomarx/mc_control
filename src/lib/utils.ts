@@ -15,9 +15,11 @@ export function mesAtual(): { mes: number; ano: number } {
   return { mes: now.getMonth() + 1, ano: now.getFullYear() }
 }
 
-// Retorna o vencimento de uma conta no mês/ano dado
+// Retorna o vencimento de uma conta no mês/ano dado.
+// Dia maior que o último do mês (ex.: 30 em fevereiro) cai no último dia do mês.
 export function vencimentoNomes(dia: number, mes: number, ano: number): Date {
-  return new Date(ano, mes - 1, dia || 1)
+  const ultimo = new Date(ano, mes, 0).getDate()
+  return new Date(ano, mes - 1, Math.min(dia || 1, ultimo))
 }
 
 // Verifica se uma conta deve aparecer no mês/ano dado
@@ -48,7 +50,8 @@ export function statusPagamento(conta: ContaPagar, mes?: number, ano?: number): 
   const totalPago = totalPagoPorMes(conta, m, a)
 
   if (totalPago > 0) {
-    if (conta.valor && totalPago < conta.valor) return 'parcial'
+    // Conta variável: valor cadastrado é estimativa, qualquer pagamento quita o mês
+    if (conta.tipo !== 'variavel' && conta.valor && totalPago < conta.valor) return 'parcial'
     return 'pago'
   }
 
@@ -130,9 +133,8 @@ export function projecao30Dias(contas: ContaPagar[]): Array<{ conta: ContaPagar;
     if (!c.ativa) continue
     // Verifica nos próximos 2 meses para cobrir virada de mês
     for (let delta = 0; delta <= 1; delta++) {
-      const d = new Date(hoje)
-      d.setMonth(d.getMonth() + delta)
-      const venc = new Date(d.getFullYear(), d.getMonth(), c.diaVencimento || 1)
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() + delta, 1)
+      const venc = vencimentoNomes(c.diaVencimento, d.getMonth() + 1, d.getFullYear())
       if (venc >= hoje && venc <= fim) {
         result.push({ conta: c, vencimento: venc })
       }

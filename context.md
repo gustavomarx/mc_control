@@ -270,3 +270,19 @@ FIREBASE_SERVICE_ACCOUNT   ← JSON completo do service-account.json (uma linha)
 - Dinheiro físico ~R$ 3.014/mês aparece no AVEC mas pode não aparecer no extrato — alertar gap
 - Trocos via Pix para clientes (média R$ 38) → categoria Receita/Devolução
 - Mandar à contabilidade sempre com conta contábil preenchida — sem isso eles chutam (ver seção Contabilidade)
+
+## Avisos de contas a pagar no Discord
+- Canal privado do servidor do estúdio (guild `1467655348100927684`, canal `1470434061855097007`)
+- Cron Vercel (`vercel.json`): `0 11 * * *` = 8h BRT → `GET /api/cron/contas-discord` (Bearer `CRON_SECRET`)
+  - Segunda: contas da semana (seg–dom) + em aberto de datas anteriores
+  - Dia útil: o que vence amanhã; na véspera de fim de semana/feriado nacional vai até o próximo dia útil
+  - Dia sem banco: não envia. Controle de envio único por dia em `configuracoes/discord_contas.ultimoAviso`
+  - Teste: `?dry=1` (não envia) · `?data=AAAA-MM-DD` (simula) · `?forcar=1`
+- Bot (interações por HTTP, sem gateway): `POST /api/discord/interactions`
+  - `/pago conta:<autocomplete> [valor]` (sem valor = integral) · `/pendentes` (privado)
+  - Botão "Paguei" (só em mensagem enviada pelo bot) → modal com valor pré-preenchido
+  - Grava em `historicoPagamentos` com `origem: 'discord'`, `usuarioId: 'discord:<username>'`
+  - Permissão: `DISCORD_USUARIOS` (gustavomarx, gabrielacoelho)
+  - Registrar comandos: `node --env-file=.env.local scripts/discord-comandos.mjs`
+- Motor: `src/lib/contas-vencimentos.ts` (feriados nacionais com Páscoa, dia > fim do mês cai no último dia,
+  conta variável quita com qualquer pagamento). Mesma regra aplicada em `statusPagamento` da tela
