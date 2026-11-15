@@ -1,4 +1,6 @@
 export const runtime = 'nodejs'
+// São Paulo, perto do Firestore (southamerica-east1): o autocomplete precisa responder em < 3s
+export const preferredRegion = 'gru1'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { carregarContasAtivas, emAberto, registrarPagamento } from '@/lib/contas-pagar-server'
@@ -88,14 +90,20 @@ export async function POST(req: NextRequest) {
       const contas = await carregarContasAtivas()
       const vencidas = atrasadas(contas, hoje)
       const proximas = vencimentosEntre(contas, hoje, somarDias(hoje, 7))
-      const blocos: string[] = []
+      // Próximos 7 dias primeiro (é o que importa agora); vencidas depois, cortando por linha inteira
+      const linhas: string[] = []
+      if (proximas.length) linhas.push('**📅 Próximos 7 dias**', ...proximas.map(x => linhaItem(x)), '')
       if (vencidas.length) {
-        blocos.push(`**🔴 Vencidas (${vencidas.length})**\n` + vencidas.map(x =>
-          `\`${String(x.mesRef).padStart(2, '0')}/${x.anoRef}\` ${linhaItem(x, false)}`).join('\n'))
+        linhas.push(`**🔴 Vencidas (${vencidas.length})**`, ...vencidas.map(x =>
+          `\`${String(x.mesRef).padStart(2, '0')}/${x.anoRef}\` ${linhaItem(x, false)}`))
       }
-      if (proximas.length) blocos.push(`**📅 Próximos 7 dias**\n` + proximas.map(x => linhaItem(x)).join('\n'))
-      let txt = blocos.length ? blocos.join('\n\n') : 'Nada em aberto. 🎉'
-      if (txt.length > 1990) txt = txt.slice(0, 1980) + '\n…'
+      if (!linhas.length) return responder('Nada em aberto. 🎉', true)
+      let txt = ''
+      for (let k = 0; k < linhas.length; k++) {
+        const resto = linhas.length - k
+        if (txt.length + linhas[k].length + 60 > 2000) { txt += `\n_+ ${resto} linhas. Registre as primeiras e rode \`/pendentes\` de novo._`; break }
+        txt += (txt ? '\n' : '') + linhas[k]
+      }
       return responder(txt, true)
     }
 
@@ -106,10 +114,20 @@ export async function POST(req: NextRequest) {
 
       let alvo = conta.split('|')
       if (alvo.length !== 3) {
+        const abertos = emAberto(await carregarContasAtivas(), hoje)
+        // O Discord manda o rótulo em vez do valor quando o autocomplete demora (servidor frio):
+        // "PGFN Parcelamento · venc 30/05/2026 · R$ 105,87 · ATRASADA" → nome + mês do vencimento
+        const rotulo = conta.match(/^(.+?) · venc (\d{2})\/(\d{2})\/(\d{4})/)
+        if (rotulo) {
+          const [, nome, , mm, aaaa] = rotulo
+          const item = abertos.find(it =>
+            it.conta.nome === nome && it.mesRef === Number(mm) && it.anoRef === Number(aaaa))
+          if (!item) return responder(`✅ **${nome}** (${mm}/${aaaa}) já está paga ou não está em aberto.`, true)
+          return await registrarEResponder(u, item.conta.id, item.anoRef, item.mesRef, valor)
+        }
         // Texto digitado sem escolher da lista: tenta achar pelo nome (a mais antiga em aberto)
         const t = normalizar(conta)
-        const achados = emAberto(await carregarContasAtivas(), hoje)
-          .filter(it => normalizar(it.conta.nome).includes(t))
+        const achados = abertos.filter(it => normalizar(it.conta.nome).includes(t))
         const nomes = new Set(achados.map(it => it.conta.id))
         if (!achados.length) return responder(`Não achei conta em aberto com "${conta}". Escolha da lista ao digitar.`, true)
         if (nomes.size > 1) return responder(`"${conta}" bate com mais de uma conta. Escolha da lista ao digitar.`, true)
